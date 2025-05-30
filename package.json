@@ -1,0 +1,63 @@
+{
+  "name": "doc-scrapper",
+  "version": "1.0.0",
+  "description": "Universal documentation scraper built with TypeScript",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "rag:index": "node dist/rag/cli/indexDocuments.js",
+    "rag:chat": "node dist/rag/cli/chat.js"
+  },
+  "bin": {
+    "doc-scrapper": "./dist/index.js"
+  },
+  "keywords": [
+    "documentation",
+    "scraper",
+    "typescript",
+    "cli",
+    "markdown",
+    "rag",
+    "chatbot",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^11.0.0",
+    "fs-extra": "^11.1.0",
+    "turndown": "^7.1.0",
+    "cli-progress": "^3.12.0",
+    "zod": "^3.22.0",
+    "ai": "^3.0.0",
+    "@ai-sdk/openai": "^0.0.66",
+    "@ai-sdk/anthropic": "^0.0.50",
+    "chromadb": "^1.5.0",
+    "dotenv": "^16.4.0",
+    "uuid": "^9.0.0",
+    "@langchain/textsplitters": "^0.0.0",
+    "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/fs-extra": "^11.0.0",
+    "@types/turndown": "^5.0.0",
+    "@types/cli-progress": "^3.11.0",
+    "@types/uuid": "^9.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.50.0",
+    "prettier": "^3.0.0"
+  }
+} 

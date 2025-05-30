@@ -1,0 +1,61 @@
+# Doc Scrapper Project Rules
+
+## Project Context
+Universal documentation scraper built with TypeScript. Focused on extracting and structuring technical documentation from various websites into unified formats (Markdown, JSON, HTML).
+
+## Code Style & Patterns
+- Use TypeScript strict mode
+- Prefer async/await over Promises.then()
+- Use descriptive variable names (extractedContent vs content)
+- Implement proper error handling with try/catch blocks
+- Use interfaces for complex object structures
+- Prefer composition over inheritance
+
+## Architecture Principles
+- Modular design with separate concerns
+- Strategy pattern for different site types
+- Plugin system for extensibility
+- Clear separation: discovery → extraction → formatting → storage
+
+## Key Libraries & APIs
+- **Cheerio**: Server-side jQuery for HTML parsing
+- **Axios**: HTTP client with timeout and retry support
+- **Turndown**: HTML to Markdown conversion
+- **Commander.js**: CLI framework
+- **fs-extra**: Enhanced file system operations
+
+## Performance Considerations
+- Implement rate limiting (min 1 second between requests)
+- Use parallel processing with concurrency limits
+- Stream large files instead of loading into memory
+- Cache repeated requests
+
+## Error Handling Patterns
+- Graceful degradation for missing pages
+- Exponential backoff for retry logic
+- Detailed logging with context
+- Checkpoint system for long operations
+
+## Testing Strategy
+- Unit tests for each extractor strategy
+- Integration tests with real websites
+- Mock HTTP responses for reliable testing
+- Test with various documentation structures
+
+## CLI Design
+- Single command with multiple options
+- Progress indicators for long operations
+- Verbose mode for debugging
+- Configuration file support
+
+## Security & Ethics
+- Respect robots.txt
+- User-agent rotation
+- Rate limiting compliance
+- Audit logging for all requests
+
+## Common Issues
+- JavaScript-rendered content requires Puppeteer
+- CORS restrictions may block certain sites
+- Large documentation sites need pagination handling
+- Different sites use different navigation patterns 

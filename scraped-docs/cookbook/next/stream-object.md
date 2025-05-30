@@ -1,0 +1,145 @@
+# Stream Object
+
+
+---
+url: https://ai-sdk.dev/cookbook/next/stream-object
+description: Learn how to stream object using the AI SDK and Next.js
+---
+
+
+# [Stream Object](#stream-object)
+
+
+Object generation can sometimes take a long time to complete, especially when you're generating a large schema. In such cases, it is useful to stream the object generation process to the client in real-time. This allows the client to display the generated object as it is being generated, rather than have users wait for it to complete before displaying the result.
+
+http://localhost:3000
+
+View Notifications
+
+
+## [Object Mode](#object-mode)
+
+
+The `streamObject` function allows you to specify different output strategies using the `output` parameter. By default, the output mode is set to `object`, which will generate exactly the structured object that you specify in the schema option.
+
+
+### [Schema](#schema)
+
+
+It is helpful to set up the schema in a separate file that is imported on both the client and server.
+
+app/api/use-object/schema.ts
+
+```
+import{ z }from'zod';// define a schema for the notificationsexportconst notificationSchema = z.object({  notifications: z.array(    z.object({      name: z.string().describe('Name of a fictional person.'),      message: z.string().describe('Message. Do not use emojis or links.'),}),),});
+```
+
+
+### [Client](#client)
+
+
+The client uses [`useObject`](/docs/reference/ai-sdk-ui/use-object) to stream the object generation process.
+
+The results are partial and are displayed as they are received. Please note the code for handling `undefined` values in the JSX.
+
+app/page.tsx
+
+```
+'use client';import{ experimental_useObject as useObject }from'@ai-sdk/react';import{ notificationSchema }from'./api/use-object/schema';exportdefaultfunctionPage(){const{ object, submit }=useObject({    api:'/api/use-object',    schema: notificationSchema,});return(<div><buttononClick={()=>submit('Messages during finals week.')}>Generate notifications</button>{object?.notifications?.map((notification, index)=>(<divkey={index}><p>{notification?.name}</p><p>{notification?.message}</p></div>))}</div>);}
+```
+
+
+### [Server](#server)
+
+
+On the server, we use [`streamObject`](/docs/reference/ai-sdk-core/stream-object) to stream the object generation process.
+
+app/api/use-object/route.ts
+
+```
+import{ openai }from'@ai-sdk/openai';import{ streamObject }from'ai';import{ notificationSchema }from'./schema';// Allow streaming responses up to 30 secondsexportconst maxDuration =30;exportasyncfunctionPOST(req:Request){const context =await req.json();const result =streamObject({    model:openai('gpt-4-turbo'),    schema: notificationSchema,    prompt:`Generate 3 notifications for a messages app in this context:`+ context,});return result.toTextStreamResponse();}
+```
+
+
+## [Loading State and Stopping the Stream](#loading-state-and-stopping-the-stream)
+
+
+You can use the `loading` state to display a loading indicator while the object is being generated. You can also use the `stop` function to stop the object generation process.
+
+app/page.tsx
+
+```
+'use client';import{ experimental_useObject as useObject }from'@ai-sdk/react';import{ notificationSchema }from'./api/use-object/schema';exportdefaultfunctionPage(){const{ object, submit, isLoading, stop }=useObject({    api:'/api/use-object',    schema: notificationSchema,});return(<div><buttononClick={()=>submit('Messages during finals week.')}disabled={isLoading}>Generate notifications</button>{isLoading &&(<div><div>Loading...</div><buttontype="button"onClick={()=>stop()}>Stop</button></div>)}{object?.notifications?.map((notification, index)=>(<divkey={index}><p>{notification?.name}</p><p>{notification?.message}</p></div>))}</div>);}
+```
+
+
+## [Array Mode](#array-mode)
+
+
+The "array" output mode allows you to stream an array of objects one element at a time. This is particularly useful when generating lists of items.
+
+
+### [Schema](#schema-1)
+
+
+First, update the schema to generate a single object (remove the `z.array()`).
+
+app/api/use-object/schema.ts
+
+```
+import{ z }from'zod';// define a schema for a single notificationexportconst notificationSchema = z.object({  name: z.string().describe('Name of a fictional person.'),  message: z.string().describe('Message. Do not use emojis or links.'),});
+```
+
+
+### [Client](#client-1)
+
+
+On the client, you wrap the schema in `z.array()` to generate an array of objects.
+
+app/page.tsx
+
+```
+'use client';import{ experimental_useObject as useObject }from'@ai-sdk/react';import{ notificationSchema }from'./api/use-object/schema';exportdefaultfunctionPage(){const{ object, submit, isLoading, stop }=useObject({    api:'/api/use-object',    schema: z.array(notificationSchema),});return(<div><buttononClick={()=>submit('Messages during finals week.')}disabled={isLoading}>Generate notifications</button>{isLoading &&(<div><div>Loading...</div><buttontype="button"onClick={()=>stop()}>Stop</button></div>)}{object?.map((notification, index)=>(<divkey={index}><p>{notification.name}</p><p>{notification.message}</p></div>))}</div>);}
+```
+
+
+### [Server](#server-1)
+
+
+On the server, specify `output: 'array'` to generate an array of objects.
+
+app/api/use-object/route.ts
+
+```
+import{ openai }from'@ai-sdk/openai';import{ streamObject }from'ai';import{ notificationSchema }from'./schema';exportconst maxDuration =30;exportasyncfunctionPOST(req:Request){const context =await req.json();const result =streamObject({    model:openai('gpt-4-turbo'),    output:'array',    schema: notificationSchema,    prompt:`Generate 3 notifications for a messages app in this context:`+ context,});return result.toTextStreamResponse();}
+```
+
+
+## [No Schema Mode](#no-schema-mode)
+
+
+The "no-schema" output mode can be used when you don't want to specify a schema, for example when the data structure is defined by a dynamic user request. When using this mode, omit the schema parameter and set `output: 'no-schema'`. The model will still attempt to generate JSON data based on the prompt.
+
+
+### [Client](#client-2)
+
+
+On the client, you wrap the schema in `z.array()` to generate an array of objects.
+
+app/page.tsx
+
+```
+'use client';import{ experimental_useObject as useObject }from'@ai-sdk/react';import{ z }from'zod';exportdefaultfunctionPage(){const{ object, submit, isLoading, stop }=useObject({    api:'/api/use-object',    schema: z.unknown(),});return(<div><buttononClick={()=>submit('Messages during finals week.')}disabled={isLoading}>Generate notifications</button>{isLoading &&(<div><div>Loading...</div><buttontype="button"onClick={()=>stop()}>Stop</button></div>)}{object?.map((notification, index)=>(<divkey={index}><p>{notification.name}</p><p>{notification.message}</p></div>))}</div>);}
+```
+
+
+### [Server](#server-2)
+
+
+On the server, specify `output: 'no-schema'`.
+
+app/api/use-object/route.ts
+
+```
+import{ openai }from'@ai-sdk/openai';import{ streamObject }from'ai';import{ notificationSchema }from'./schema';exportconst maxDuration =30;exportasyncfunctionPOST(req:Request){const context =await req.json();const result =streamObject({    model:openai('gpt-4-turbo'),    output:'no-schema',    prompt:`Generate 3 notifications for a messages app in this context:`+ context,});return result.toTextStreamResponse();}
+```

@@ -1,0 +1,90 @@
+# OpenAI API (required for embeddings and LLM)
+OPENAI_API_KEY=sk-your-openai-api-key-here
+
+# Alternative embedding providers (optional)
+COHERE_API_KEY=your-cohere-api-key-here
+
+# Alternative LLM providers (optional)
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+
+# Vector Database Configuration
+VECTOR_DB=chroma
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
+
+# Alternative vector databases (optional)
+PINECONE_API_KEY=your-pinecone-api-key-here
+PINECONE_INDEX=doc-scrapper
+
+# RAG Configuration
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4o-mini
+CHUNK_SIZE=800
+CHUNK_OVERLAP=100
+RETRIEVAL_K=5
+TEMPERATURE=0.1
+
+# Application Settings
+NODE_ENV=development
+LOG_LEVEL=info
+
+# Doc Scrapper Configuration
+# Copy this file to .env and fill in your values
+
+# ============================================================================
+# Scraping Configuration
+# ============================================================================
+# Rate limiting between requests (milliseconds)
+SCRAPER_DELAY=1000
+
+# Maximum concurrent requests
+SCRAPER_CONCURRENCY=3
+
+# User agent for requests
+SCRAPER_USER_AGENT="DocScrapper/1.0"
+
+# ============================================================================
+# RAG System Configuration  
+# ============================================================================
+
+# LLM Configuration
+OPENAI_API_KEY=sk-...
+COHERE_API_KEY=your-cohere-api-key-here
+
+# RAG LLM Settings
+RAG_LLM_PROVIDER=openai
+RAG_LLM_MODEL=gpt-4o-mini
+RAG_LLM_TEMPERATURE=0.1
+RAG_LLM_MAX_TOKENS=1000
+
+# Embedding Configuration
+RAG_EMBEDDING_PROVIDER=openai
+RAG_EMBEDDING_MODEL=text-embedding-3-small
+RAG_EMBEDDING_DIMENSIONS=1536
+
+# Vector Store Configuration (ChromaDB)
+# ⚠️  NOTE: ChromaDB API key is NOT required for local installation
+# ChromaDB runs locally on port 8000 by default without authentication
+RAG_VECTOR_STORE_TYPE=chromadb
+RAG_VECTOR_STORE_CONNECTION_STRING=http://localhost:8000
+RAG_VECTOR_STORE_COLLECTION_NAME=documentation_chunks
+
+# To start ChromaDB locally, run:
+# pip install chromadb
+# chroma run --host localhost --port 8000
+
+# Document Processing Configuration
+RAG_CHUNKING_STRATEGY=markdown
+RAG_CHUNK_SIZE=1000
+RAG_CHUNK_OVERLAP=200
+RAG_MIN_CHUNK_SIZE=50
+
+# Retrieval Configuration  
+RAG_RETRIEVAL_K=5
+RAG_RETRIEVAL_SCORE_THRESHOLD=0.5
+
+# Chat Configuration
+RAG_CHAT_SYSTEM_PROMPT="You are a helpful assistant that answers questions based on documentation."
+RAG_CHAT_MAX_HISTORY=10 

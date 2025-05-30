@@ -1,0 +1,49 @@
+# Call Tools
+
+
+---
+url: https://ai-sdk.dev/cookbook/rsc/call-tools
+description: Learn how to call tools using the AI SDK and React Server Components.
+---
+
+
+# [Call Tools](#call-tools)
+
+
+Some models allow developers to provide a list of tools that can be called at any time during a generation. This is useful for extending the capabilites of a language model to either use logic or data to interact with systems external to the model.
+
+http://localhost:3000
+
+User: How is it going?
+
+Assistant: All good, how may I help you?
+
+What is 24 celsius in fahrenheit?
+
+Send Message
+
+
+## [Client](#client)
+
+
+Let's create a simple conversation between a user and model and place a button that will call `continueConversation`.
+
+app/page.tsx
+
+```
+'use client';import{ useState }from'react';import{Message, continueConversation }from'./actions';// Allow streaming responses up to 30 secondsexportconst maxDuration =30;exportdefaultfunctionHome(){const[conversation, setConversation]=useState<Message[]>([]);const[input, setInput]=useState<string>('');return(<div><div>{conversation.map((message, index)=>(<divkey={index}>{message.role}:{message.content}</div>))}</div><div><inputtype="text"value={input}onChange={event=>{setInput(event.target.value);}}/><buttononClick={async()=>{const{ messages }=awaitcontinueConversation([...conversation,{ role:'user', content: input },]);setConversation(messages);}}>SendMessage</button></div></div>);}
+```
+
+
+## [Server](#server)
+
+
+Now, let's implement the `continueConversation` action that uses `generateText` to generate a response to the user's question. We will use the [`tools`](/docs/reference/ai-sdk-core/generate-text#tools) parameter to specify our own function called `celsiusToFahrenheit` that will convert a user given value in celsius to fahrenheit.
+
+We will use zod to specify the schema for the `celsiusToFahrenheit` function's parameters.
+
+app/actions.ts
+
+```
+'use server';import{ generateText }from'ai';import{ openai }from'@ai-sdk/openai';import{ z }from'zod';exportinterfaceMessage{  role:'user'|'assistant';  content:string;}exportasyncfunctioncontinueConversation(history: Message[]){'use server';const{ text, toolResults }=awaitgenerateText({    model:openai('gpt-3.5-turbo'),    system:'You are a friendly assistant!',    messages: history,    tools:{      celsiusToFahrenheit:{        description:'Converts celsius to fahrenheit',        parameters: z.object({          value: z.string().describe('The value in celsius'),}),execute:async({ value })=>{const celsius =parseFloat(value);const fahrenheit = celsius *(9/5)+32;return`${celsius}°C is ${fahrenheit.toFixed(2)}°F`;},},},});return{    messages:[...history,{        role:'assistant'asconst,        content:          text | toolResults.map(toolResult=> toolResult.result).join('\n'),},],};}
+```
