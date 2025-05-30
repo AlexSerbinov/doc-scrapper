@@ -1,29 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RAGClient } from '@/lib/ragClient';
+
+const RAG_SERVER_URL = process.env.RAG_SERVER_URL || 'http://localhost:8001';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const body = await request.json();
+    const { message, trialId } = body;
 
-    if (!message || typeof message !== 'string') {
+    // TODO: Use trialId for analytics and rate limiting
+    console.log('Trial ID:', trialId);
+
+    if (!message) {
       return NextResponse.json(
-        { error: 'Message is required and must be a string' },
+        { error: 'Message is required' },
         { status: 400 }
       );
     }
 
-    const ragClient = RAGClient.getInstance();
-    const response = await ragClient.query(message.trim());
+    // Forward request to RAG server
+    const response = await fetch(`${RAG_SERVER_URL}/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message }),
+    });
 
-    return NextResponse.json(response);
+    if (!response.ok) {
+      throw new Error(`RAG server error: ${response.status}`);
+    }
+
+    const ragData = await response.json();
+
+    // Transform RAG response to match our UI format
+    const formattedResponse = {
+      content: ragData.content || 'Sorry, I could not generate a response.',
+      sources: ragData.sources?.map((source: { title?: string; url?: string; excerpt?: string; content?: string }) => ({
+        title: source.title || 'Untitled',
+        url: source.url || '#',
+        excerpt: source.excerpt || source.content?.substring(0, 150) || ''
+      })) || []
+    };
+
+    return NextResponse.json(formattedResponse);
 
   } catch (error) {
-    console.error('API Error:', error);
-    
+    console.error('Chat API error:', error);
     return NextResponse.json(
       { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to process message',
+        content: 'I apologize, but I encountered an error processing your request. Please try again.',
+        sources: []
       },
       { status: 500 }
     );
