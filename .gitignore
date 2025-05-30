@@ -56,3 +56,6 @@ chroma/
 # Temporary files
 tmp/
 temp/ 
+
+# scraped docs
+scraped-docs/
