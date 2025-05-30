@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Source**: https://ai-sdk.dev/docs
+**Source**: https://ai-sdk.dev/docs/getting-started
 **Scraped**: 5/30/2025
 **Total Pages**: 487
 

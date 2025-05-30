@@ -1,5 +1,6 @@
 import { RAGPipeline, ChatResponse, ProgressCallback, ProcessingStatus } from '../types/ragTypes.js';
-import { DocumentLoader, MarkdownChunkingStrategy } from '../chunking/markdownChunker.js';
+import { DocumentLoader } from '../chunking/markdownChunker.js';
+import { ChunkingStrategyFactory } from '../chunking/chunkingFactory.js';
 import { ChromaVectorStore } from '../vectorstore/chromaStore.js';
 import { RAGConfigService } from '../config/ragConfig.js';
 import { openai } from '@ai-sdk/openai';
@@ -7,13 +8,15 @@ import { generateText } from 'ai';
 
 export class DocumentationRAGPipeline implements RAGPipeline {
   private vectorStore: ChromaVectorStore;
-  private chunkingStrategy: MarkdownChunkingStrategy;
   private config: any;
 
   constructor() {
     this.vectorStore = new ChromaVectorStore();
-    this.chunkingStrategy = new MarkdownChunkingStrategy();
     this.config = RAGConfigService.getInstance().config;
+  }
+
+  async initialize(): Promise<void> {
+    await this.vectorStore.initialize();
   }
 
   async indexDocuments(documentsPath: string, progressCallback?: ProgressCallback): Promise<void> {
@@ -40,18 +43,26 @@ export class DocumentationRAGPipeline implements RAGPipeline {
         throw new Error('No documents found to index');
       }
 
+      // Create optimal chunking strategy
+      const chunkingStrategy = ChunkingStrategyFactory.createStrategy();
+
       this.updateProgress(progressCallback, {
         stage: 'chunking',
         progress: 30,
-        message: 'Chunking documents...',
+        message: 'Chunking documents with enhanced strategy...',
         documentsProcessed: 0,
         totalDocuments: documents.length,
       });
 
       // Chunk documents
       console.log('✂️ Chunking documents...');
-      const chunks = await this.chunkingStrategy.chunkDocuments(documents);
+      const chunks = await chunkingStrategy.chunkDocuments(documents);
       console.log(`🧩 Created ${chunks.length} chunks`);
+
+      // Log chunking stats
+      const avgTokens = chunks.reduce((sum, chunk) => sum + chunk.metadata.tokenCount, 0) / chunks.length;
+      console.log(`📊 Average chunk size: ${Math.round(avgTokens)} tokens`);
+      console.log(`📏 Chunk size range: ${Math.min(...chunks.map(c => c.metadata.tokenCount))} - ${Math.max(...chunks.map(c => c.metadata.tokenCount))} tokens`);
 
       this.updateProgress(progressCallback, {
         stage: 'embedding',
@@ -212,12 +223,6 @@ ANSWER:`;
   // Utility methods
   async getCollectionInfo() {
     return await this.vectorStore.getCollectionInfo();
-  }
-
-  async initialize(): Promise<void> {
-    console.log('🔄 Initializing vector store...');
-    await this.vectorStore.initialize();
-    console.log('✅ Vector store initialized');
   }
 
   async resetIndex(): Promise<void> {

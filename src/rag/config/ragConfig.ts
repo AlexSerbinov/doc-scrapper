@@ -34,9 +34,9 @@ export class RAGConfigService {
         dimensions: process.env.EMBEDDING_DIMENSIONS ? parseInt(process.env.EMBEDDING_DIMENSIONS) : undefined,
       },
       chunking: {
-        chunkSize: parseInt(process.env.CHUNK_SIZE || '800'),
-        chunkOverlap: parseInt(process.env.CHUNK_OVERLAP || '100'),
-        strategy: (process.env.CHUNKING_STRATEGY as 'recursive' | 'markdown' | 'sentence') || 'markdown',
+        chunkSize: parseInt(process.env.CHUNK_SIZE || '2000'),
+        chunkOverlap: parseInt(process.env.CHUNK_OVERLAP || '200'),
+        strategy: (process.env.CHUNKING_STRATEGY as 'recursive' | 'markdown' | 'sentence' | 'universal') || 'universal',
       },
       vectorStore: {
         provider: (process.env.VECTOR_DB as 'chroma' | 'pinecone' | 'faiss') || 'chroma',

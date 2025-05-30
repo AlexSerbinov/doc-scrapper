@@ -12,7 +12,11 @@
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "rag:index": "node dist/rag/cli/indexDocuments.js",
-    "rag:chat": "node dist/rag/cli/chat.js"
+    "rag:chat": "node dist/rag/cli/chat.js",
+    "rag:server": "tsx src/rag/cli/server.ts",
+    "web:dev": "cd web-app && npm run dev",
+    "web:build": "cd web-app && npm run build",
+    "web:install": "cd web-app && npm install"
   },
   "bin": {
     "doc-scrapper": "./dist/index.js"
@@ -30,34 +34,38 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/anthropic": "^0.0.50",
+    "@ai-sdk/openai": "^0.0.66",
+    "@langchain/textsplitters": "^0.0.0",
+    "ai": "^3.0.0",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
-    "commander": "^11.0.0",
-    "fs-extra": "^11.1.0",
-    "turndown": "^7.1.0",
-    "cli-progress": "^3.12.0",
-    "zod": "^3.22.0",
-    "ai": "^3.0.0",
-    "@ai-sdk/openai": "^0.0.66",
-    "@ai-sdk/anthropic": "^0.0.50",
     "chromadb": "^1.5.0",
+    "cli-progress": "^3.12.0",
+    "commander": "^11.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.0",
+    "express": "^4.21.2",
+    "fs-extra": "^11.1.0",
+    "openai": "^4.0.0",
+    "turndown": "^7.1.0",
     "uuid": "^9.0.0",
-    "@langchain/textsplitters": "^0.0.0",
-    "openai": "^4.0.0"
+    "zod": "^3.22.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0",
-    "@types/fs-extra": "^11.0.0",
-    "@types/turndown": "^5.0.0",
     "@types/cli-progress": "^3.11.0",
+    "@types/cors": "^2.8.18",
+    "@types/express": "^4.17.22",
+    "@types/fs-extra": "^11.0.0",
+    "@types/node": "^20.0.0",
+    "@types/turndown": "^5.0.0",
     "@types/uuid": "^9.0.0",
-    "tsx": "^4.0.0",
-    "vitest": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.50.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
   }
-} 
+}

@@ -26,7 +26,7 @@ export interface EmbeddingConfig {
 export interface ChunkingConfig {
   chunkSize: number;
   chunkOverlap: number;
-  strategy: 'recursive' | 'markdown' | 'sentence';
+  strategy: 'recursive' | 'markdown' | 'sentence' | 'universal';
 }
 
 export interface VectorStoreConfig {
