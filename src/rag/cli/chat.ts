@@ -37,6 +37,9 @@ program
       console.log('🔄 Initializing RAG system...');
       const pipeline = new DocumentationRAGPipeline();
       
+      // Initialize the pipeline before checking collection
+      await pipeline.initialize();
+      
       // Check if we have any documents indexed
       try {
         const collectionInfo = await pipeline.getCollectionInfo();

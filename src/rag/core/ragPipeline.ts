@@ -214,6 +214,12 @@ ANSWER:`;
     return await this.vectorStore.getCollectionInfo();
   }
 
+  async initialize(): Promise<void> {
+    console.log('🔄 Initializing vector store...');
+    await this.vectorStore.initialize();
+    console.log('✅ Vector store initialized');
+  }
+
   async resetIndex(): Promise<void> {
     console.log('🔄 Resetting vector store...');
     await this.vectorStore.reset();
