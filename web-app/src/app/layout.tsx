@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Header } from "@/components/layout/Header";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Doc Scrapper - AI Documentation Assistant",
-  description: "Інтелектуальний помічник для пошуку та навігації по технічній документації з автоматичними посиланнями на джерела.",
-  keywords: ["documentation", "AI", "RAG", "search", "chat", "assistant"],
+  title: "Doc Scrapper AI - Розблокуйте Силу Вашої Документації",
+  description: "Миттєво перетворіть вашу онлайн-документацію на інтерактивного AI-помічника. Отримуйте відповіді, а не просто результати пошуку.",
+  keywords: "AI документація, скрапінг документації, AI асистент, машинне навчання",
   authors: [{ name: "Alex Serbinov" }],
   openGraph: {
     title: "Doc Scrapper - AI Documentation Assistant",
@@ -26,9 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk">
-      <body className={`${inter.className} antialiased`}>
-        {children}
+    <html lang="uk" className="dark">
+      <body className={inter.className}>
+        <Header />
+        <main className="min-h-screen">
+          {children}
+        </main>
       </body>
     </html>
   );
