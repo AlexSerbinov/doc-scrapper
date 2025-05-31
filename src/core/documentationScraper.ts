@@ -43,7 +43,7 @@ export class DocumentationScraper implements Scraper {
     const processedPages: ProcessedPage[] = [];
 
     try {
-      console.log(`🚀 Starting scraping of ${url}`);
+      console.log(`🚀 Starting scrape of ${url}`);
 
       // 1. Check robots.txt
       const robotsAllowed = await this.httpClient.checkRobotsTxt(url);
@@ -66,7 +66,10 @@ export class DocumentationScraper implements Scraper {
       }
 
       const urlsToScrape = discovery.urls.slice(0, config.maxDepth > 0 ? config.maxDepth : discovery.urls.length);
-      console.log(`📄 Found ${urlsToScrape.length} URLs to scrape`);
+      
+      // Enhanced output for frontend parsing ⭐
+      console.log(`📄 Found ${urlsToScrape.length} URLs for scraping`);
+      console.log(`📊 SCRAPING_STATS: {"urlsFound": ${urlsToScrape.length}, "urlsTotal": ${urlsToScrape.length}, "concurrency": ${config.maxConcurrency}, "rateLimitMs": ${config.rateLimitMs}}`);
 
       if (urlsToScrape.length === 0) {
         throw new Error('No URLs found to scrape');
@@ -87,6 +90,10 @@ export class DocumentationScraper implements Scraper {
       if (processedPages.length > 0) {
         console.log('\n💾 Saving results...');
         await this.storageAdapter.save(processedPages, config);
+        
+        // Enhanced completion stats ⭐
+        const totalBytes = processedPages.reduce((sum, page) => sum + (page.content?.length || 0), 0);
+        console.log(`✅ SCRAPING_COMPLETE: {"successfulPages": ${processedPages.length}, "failedPages": ${errors.length}, "totalBytes": ${totalBytes}}`);
       }
 
     } catch (error) {
@@ -129,6 +136,7 @@ export class DocumentationScraper implements Scraper {
   ): Promise<void> {
     const concurrency = Math.min(config.maxConcurrency, urls.length);
     const chunks = this.chunkArray(urls, concurrency);
+    let totalProcessed = 0;
 
     for (const chunk of chunks) {
       const promises = chunk.map(url => this.processUrl(url, config));
@@ -136,9 +144,15 @@ export class DocumentationScraper implements Scraper {
 
       results.forEach((result, index) => {
         const url = chunk[index];
+        totalProcessed++;
         
         if (result.status === 'fulfilled' && result.value) {
           processedPages.push(result.value);
+          
+          // Enhanced progress output ⭐
+          const percentage = Math.round((totalProcessed / urls.length) * 100);
+          console.log(`🔄 SCRAPING_PROGRESS: {"current": ${totalProcessed}, "total": ${urls.length}, "percentage": ${percentage}, "currentUrl": "${url}", "status": "success"}`);
+          
         } else {
           const error = result.status === 'rejected' ? result.reason : 'Unknown error';
           errors.push({
@@ -146,6 +160,10 @@ export class DocumentationScraper implements Scraper {
             error: error instanceof Error ? error.message : String(error),
             timestamp: new Date()
           });
+          
+          // Enhanced error output ⭐
+          const percentage = Math.round((totalProcessed / urls.length) * 100);
+          console.log(`❌ SCRAPING_PROGRESS: {"current": ${totalProcessed}, "total": ${urls.length}, "percentage": ${percentage}, "currentUrl": "${url}", "status": "error", "error": "${error instanceof Error ? error.message : String(error)}"}`);
         }
 
         this.progressBar?.increment();

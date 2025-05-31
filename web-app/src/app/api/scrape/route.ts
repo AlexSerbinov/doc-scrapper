@@ -241,7 +241,85 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
   const lines = output.split('\n').filter(line => line.trim());
   
   for (const line of lines) {
-    // Parse URL discovery
+    // Parse JSON structured output ⭐ NEW
+    if (line.includes('SCRAPING_STATS:')) {
+      try {
+        const jsonMatch = line.match(/SCRAPING_STATS:\s*(.+)$/);
+        if (jsonMatch) {
+          const stats = JSON.parse(jsonMatch[1]);
+          updateSessionStatus(sessionId, {
+            status: 'scraping',
+            progress: 25,
+            message: `Знайшли ${stats.urlsFound} сторінок для скрапінгу...`,
+            statistics: {
+              urlsFound: stats.urlsFound,
+              urlsTotal: stats.urlsTotal,
+              concurrency: stats.concurrency,
+              rateLimitMs: stats.rateLimitMs,
+              elapsedTime
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`[${sessionId}] Error parsing SCRAPING_STATS:`, error);
+      }
+    }
+    
+    // Parse progress updates ⭐ NEW
+    if (line.includes('SCRAPING_PROGRESS:')) {
+      try {
+        const jsonMatch = line.match(/SCRAPING_PROGRESS:\s*(.+)$/);
+        if (jsonMatch) {
+          const progress = JSON.parse(jsonMatch[1]);
+          
+          const scrapingRate = elapsedTime > 0 ? progress.current / elapsedTime : 0;
+          const estimatedTimeRemaining = scrapingRate > 0 ? (progress.total - progress.current) / scrapingRate : 0;
+          
+          updateSessionStatus(sessionId, {
+            status: 'scraping',
+            progress: 25 + (progress.percentage * 0.45), // Scale to 25-70% range
+            message: `Скрапимо контент: ${progress.current}/${progress.total} сторінок (${progress.percentage}%)`,
+            statistics: {
+              urlsProcessed: progress.current,
+              urlsTotal: progress.total,
+              currentUrl: progress.currentUrl,
+              scrapingRate: Number(scrapingRate.toFixed(2)),
+              estimatedTimeRemaining: Math.round(estimatedTimeRemaining),
+              successfulPages: progress.status === 'success' ? progress.current : undefined,
+              failedPages: progress.status === 'error' ? 1 : undefined,
+              elapsedTime
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`[${sessionId}] Error parsing SCRAPING_PROGRESS:`, error);
+      }
+    }
+    
+    // Parse completion stats ⭐ NEW
+    if (line.includes('SCRAPING_COMPLETE:')) {
+      try {
+        const jsonMatch = line.match(/SCRAPING_COMPLETE:\s*(.+)$/);
+        if (jsonMatch) {
+          const completion = JSON.parse(jsonMatch[1]);
+          updateSessionStatus(sessionId, {
+            status: 'scraping',
+            progress: 70,
+            message: `Скрапінг завершено: ${completion.successfulPages} сторінок успішно`,
+            statistics: {
+              successfulPages: completion.successfulPages,
+              failedPages: completion.failedPages,
+              totalBytes: completion.totalBytes,
+              elapsedTime
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`[${sessionId}] Error parsing SCRAPING_COMPLETE:`, error);
+      }
+    }
+    
+    // Legacy parsing for backwards compatibility
     if (line.includes('Found') && line.includes('URLs')) {
       const match = line.match(/Found\s+(\d+)\s+URLs/i);
       if (match) {
@@ -253,82 +331,6 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
           statistics: {
             urlsFound,
             urlsTotal: urlsFound,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse progress bar updates - looking for patterns like "Progress |████| 45% | 23/50"
-    if (line.includes('Progress |') && line.includes('%')) {
-      const progressMatch = line.match(/Progress\s+\|[█▉▊▋▌▍▎▏▐░▒▓█]*\|\s+(\d+)%\s+\|\s+(\d+)\/(\d+)/);
-      if (progressMatch) {
-        const percentage = parseInt(progressMatch[1]);
-        const current = parseInt(progressMatch[2]);
-        const total = parseInt(progressMatch[3]);
-        
-        const scrapingRate = elapsedTime > 0 ? current / elapsedTime : 0;
-        const estimatedTimeRemaining = scrapingRate > 0 ? (total - current) / scrapingRate : 0;
-        
-        updateSessionStatus(sessionId, {
-          status: 'scraping',
-          progress: 30 + (percentage * 0.4), // Scale to 30-70% range
-          message: `Скрапимо контент: ${current}/${total} сторінок (${percentage}%)`,
-          statistics: {
-            urlsProcessed: current,
-            urlsTotal: total,
-            successfulPages: current, // Approximate
-            scrapingRate: Number(scrapingRate.toFixed(2)),
-            estimatedTimeRemaining: Math.round(estimatedTimeRemaining),
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse current URL being processed
-    if (line.includes('Processing:') || line.includes('Scraping:')) {
-      const urlMatch = line.match(/(?:Processing|Scraping):\s*(.+?)(?:\s|$)/);
-      if (urlMatch) {
-        const currentUrl = urlMatch[1];
-        updateSessionStatus(sessionId, {
-          statistics: {
-            currentUrl,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse completion statistics
-    if (line.includes('Successfully scraped') || line.includes('completed')) {
-      const successMatch = line.match(/(\d+)\s+(?:pages?|files?|documents?)/i);
-      if (successMatch) {
-        const successfulPages = parseInt(successMatch[1]);
-        updateSessionStatus(sessionId, {
-          statistics: {
-            successfulPages,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse file size information
-    if (line.includes('bytes') || line.includes('KB') || line.includes('MB')) {
-      const sizeMatch = line.match(/(\d+(?:\.\d+)?)\s*(bytes?|KB|MB|GB)/i);
-      if (sizeMatch) {
-        const size = parseFloat(sizeMatch[1]);
-        const unit = sizeMatch[2].toUpperCase();
-        
-        let totalBytes = size;
-        if (unit.includes('KB')) totalBytes *= 1024;
-        else if (unit.includes('MB')) totalBytes *= 1024 * 1024;
-        else if (unit.includes('GB')) totalBytes *= 1024 * 1024 * 1024;
-        
-        updateSessionStatus(sessionId, {
-          statistics: {
-            totalBytes: Math.round(totalBytes),
             elapsedTime
           }
         });

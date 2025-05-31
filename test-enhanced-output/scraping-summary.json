@@ -1,0 +1,35 @@
+{
+  "scrapingDate": "2025-05-31T13:40:34.790Z",
+  "baseUrl": "https://ai-sdk.dev/docs/getting-started",
+  "outputFormat": "markdown",
+  "totalPages": 3,
+  "pages": [
+    {
+      "title": "AI SDK",
+      "url": "https://ai-sdk.dev/",
+      "outputPath": "/Users/serbinov/Desktop/projects/personal/doc_scrapper/test-enhanced-output/index.md",
+      "metadata": {
+        "url": "https://ai-sdk.dev/",
+        "description": "The AI Toolkit for TypeScript, from the creators of Next.js."
+      }
+    },
+    {
+      "title": "Cookbook",
+      "url": "https://ai-sdk.dev/cookbook",
+      "outputPath": "/Users/serbinov/Desktop/projects/personal/doc_scrapper/test-enhanced-output/cookbook.md",
+      "metadata": {
+        "url": "https://ai-sdk.dev/cookbook",
+        "description": "Open-source collection of examples, guides, and templates for building with the AI SDK."
+      }
+    },
+    {
+      "title": "Caching Middleware",
+      "url": "https://ai-sdk.dev/cookbook/next/caching-middleware",
+      "outputPath": "/Users/serbinov/Desktop/projects/personal/doc_scrapper/test-enhanced-output/cookbook/next/caching-middleware.md",
+      "metadata": {
+        "url": "https://ai-sdk.dev/cookbook/next/caching-middleware",
+        "description": "Learn how to create a caching middleware with Next.js and KV."
+      }
+    }
+  ]
+}
