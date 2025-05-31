@@ -153,17 +153,18 @@ export function EnhancedProcessingModal({
           if (step.id === 'analyze' || step.id === 'scrape') {
             return { ...step, status: 'completed' };
           } else if (step.id === 'process') {
-            // Enhanced AI processing details ⭐ NEW
+            // Enhanced AI processing details ⭐ FIXED: Prioritize chunks over documents
             let details = status.message;
             
-            if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
-              details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
-            } else if (status.statistics?.chunksCreated) {
-              details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
-            } else if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
+            // ⭐ FIXED: Show chunks first (embeddings), then documents as fallback
+            if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
               details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
             } else if (status.statistics?.embeddingsGenerated) {
               details = `Проіндексовано ${status.statistics.embeddingsGenerated} блоків`;
+            } else if (status.statistics?.chunksCreated) {
+              details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
+            } else if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
+              details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
             }
             
             return { 

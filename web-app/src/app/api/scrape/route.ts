@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
-import { updateSessionStatus } from '@/lib/sessionStatus';
+import { updateSessionStatus, getSessionStatus } from '@/lib/sessionStatus';
 import { getScraperPath, getRagIndexerPath, getScrapedDocsPath, getProjectRoot, validatePaths } from '@/lib/paths';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -225,9 +225,28 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
           progress: 74, // Final scraping progress before indexing
           message: 'Скрапінг завершено успішно! Переходимо до індексації...',
           statistics: {
+            // ⭐ FIXED: Update URLs to show completion regardless of last progress update
+            urlsProcessed: undefined, // Will be preserved from last update or set by completion
+            urlsTotal: undefined, // Will be preserved from last update or set by completion  
             elapsedTime
           }
         });
+        
+        // ⭐ NEW: Additional update to ensure stats are properly shown
+        setTimeout(() => {
+          // Get current status to preserve existing stats
+          const currentStatus = getSessionStatus(sessionId);
+          const stats = currentStatus?.statistics || {};
+          
+          updateSessionStatus(sessionId, {
+            statistics: {
+              ...stats,
+              // ⭐ FIXED: Ensure final counts are properly displayed
+              urlsProcessed: stats.urlsTotal || stats.urlsProcessed || stats.successfulPages,
+              elapsedTime
+            }
+          });
+        }, 100);
         
         // Start RAG indexing
         setTimeout(() => {
@@ -346,7 +365,8 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
               successfulPages: completion.successfulPages,
               failedPages: completion.failedPages,
               totalBytes: completion.totalBytes,
-              urlsProcessed: completion.successfulPages, // ⭐ Make sure processed matches successful
+              urlsProcessed: completion.successfulPages,
+              urlsTotal: completion.successfulPages, // ⭐ FIXED: Set total to actual successful pages
               elapsedTime
             }
           });
@@ -382,7 +402,7 @@ function parseScraperErrors(sessionId: string, output: string) {
     // This is a basic implementation - could be enhanced to count specific failures
     updateSessionStatus(sessionId, {
       statistics: {
-        failedPages: (updateSessionStatus(sessionId, {}).statistics?.failedPages || 0) + 1
+        failedPages: (getSessionStatus(sessionId)?.statistics?.failedPages || 0) + 1
       }
     });
   }
