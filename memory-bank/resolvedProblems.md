@@ -638,3 +638,78 @@ const client = new ChromaClient({
 - ✅ Простий restart з однієї команди: `npm run restart`
 - ✅ Proper error handling та logging
 - ✅ Development workflow значно покращився
+
+## Проблема #7: Enhanced Progress Bar - Bugs з відображенням прогресу (31.05.2025)
+
+**Симптоми**:
+1. **Scraping progress зависав на неповному числі** (450/487 замість 488/488) - не оновлювалось до кінцевого числа
+2. **AI обробка показувала документи замість chunks** - "Документи: 488/488" замість "Embeddings: 800/3179"
+3. **Автоматичне перенаправлення все ще працювало** - користувач перекидався на AI chat без вибору
+
+**Діагностика**:
+1. **Scraping completion parsing**: Останній `SCRAPING_PROGRESS` не завжди покривав всі сторінки, статистика зависала на проміжному значенні
+2. **AI processing priority logic**: В `updateStepsFromStatus` документи показувались замість chunks через неправильний порядок умов
+3. **Modal component confusion**: `HeroSection` все ще використовував старий `ProcessingModal` з автоматичним redirect
+
+**Рішення**:
+
+**1. Виправлено Scraping Completion:**
+```typescript
+// В SCRAPING_COMPLETE parsing
+statistics: {
+  successfulPages: completion.successfulPages,
+  failedPages: completion.failedPages,
+  urlsProcessed: completion.successfulPages,
+  urlsTotal: completion.successfulPages, // ⭐ FIXED: Set total to actual successful pages
+}
+
+// Додано fallback в scraperChild.on('close')
+setTimeout(() => {
+  const currentStatus = getSessionStatus(sessionId);
+  const stats = currentStatus?.statistics || {};
+  
+  updateSessionStatus(sessionId, {
+    statistics: {
+      ...stats,
+      urlsProcessed: stats.urlsTotal || stats.urlsProcessed || stats.successfulPages,
+    }
+  });
+}, 100);
+```
+
+**2. Виправлено AI Processing Display:**
+```typescript
+// ⭐ FIXED: Показуємо chunks first (embeddings), потім documents як fallback
+if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
+  details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
+} else if (status.statistics?.embeddingsGenerated) {
+  details = `Проіндексовано ${status.statistics.embeddingsGenerated} блоків`;
+} else if (status.statistics?.chunksCreated) {
+  details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
+} else if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
+  details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
+}
+```
+
+**3. Видалено автоматичне перенаправлення:**
+```typescript
+// HeroSection.tsx - замінено старий ProcessingModal на EnhancedProcessingModal
+import { EnhancedProcessingModal } from "./EnhancedProcessingModal";
+
+// EnhancedProcessingModal не має автоматичного window.location.href
+// Користувач має самостійно обрати дію після завершення
+```
+
+**Технічні покращення**:
+- **Enhanced session status import**: Додано `getSessionStatus` import замість `require()`
+- **Improved error handling**: Кращий fallback parsing для completion stats
+- **ESLint compliance**: Виправлено всі TypeScript та ESLint помилки
+
+**Результат**:
+- ✅ **Scraping progress завершується на правильному числі** (488/488)
+- ✅ **AI обробка показує chunks** ("Embeddings: 800/3179") замість документів
+- ✅ **Користувач має контроль над навігацією** - нема автоматичного redirect
+- ✅ **Плавний UX** - статистика оновлюється коректно без зависань
+- ✅ **Production ready** - всі баги виправлені, система стабільна
+
+**Статус:** ✅ ВИРІШЕНО
