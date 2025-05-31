@@ -69,6 +69,13 @@ program
             console.log(`   Documents: ${status.documentsProcessed}/${status.totalDocuments}`);
           }
         }
+        
+        // ⭐ NEW: Extra output for batch indexing progress (80-99%)
+        if (status.stage === 'indexing' && status.progress > 80 && status.progress < 100) {
+          if (options.verbose) {
+            console.log(`   Indexing: ${status.progress}% complete`);
+          }
+        }
       });
 
       const totalTime = Date.now() - startTime;

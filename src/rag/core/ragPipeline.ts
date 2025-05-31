@@ -97,9 +97,21 @@ export class DocumentationRAGPipeline implements RAGPipeline {
         totalDocuments: documents.length,
       });
 
-      // Add to vector store
+      // Add to vector store with progress tracking ⭐ NEW
       console.log('💾 Adding chunks to vector store...');
-      await this.vectorStore.addDocuments(chunks);
+      await this.vectorStore.addDocuments(chunks, (batchProgress, current, total) => {
+        // Map batch progress to final progress range 80-99%
+        const progressRange = 99 - 80; // 19% range
+        const progressPercent = 80 + Math.round((batchProgress / 100) * progressRange);
+        
+        this.updateProgress(progressCallback, {
+          stage: 'indexing',
+          progress: progressPercent,
+          message: `Індексуємо chunks в векторну базу: ${current}/${total} (${batchProgress}%)`,
+          documentsProcessed: documents.length,
+          totalDocuments: documents.length,
+        });
+      });
 
       this.updateProgress(progressCallback, {
         stage: 'complete',

@@ -451,8 +451,17 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
         if (jsonMatch) {
           const progressData = JSON.parse(jsonMatch[1]);
           
+          // Extract chunk progress from message ⭐ NEW
+          let chunksProcessed = 0;
+          let chunksTotal = 0;
+          const chunkMatch = progressData.message.match(/(\d+)\/(\d+)/);
+          if (chunkMatch) {
+            chunksProcessed = parseInt(chunkMatch[1]);
+            chunksTotal = parseInt(chunkMatch[2]);
+          }
+          
           // Map RAG stages to progress percentages and messages
-          let progress = 75; // Start of indexing phase
+          let progress = progressData.progress; // Use actual progress from CLI
           let message = progressData.message;
           
           switch (progressData.stage) {
@@ -461,16 +470,17 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
               message = `Завантажили ${progressData.totalDocuments} документів для індексації...`;
               break;
             case 'chunking':
-              progress = 77 + (progressData.progress * 0.10); // 77-87% for chunking
               message = `Створюємо семантичні блоки: ${progressData.progress}%`;
               break;
             case 'embedding':
-              progress = 87 + (progressData.progress * 0.10); // 87-97% for embeddings
               message = `Генеруємо векторні представлення: ${progressData.progress}%`;
               break;
             case 'indexing':
-              progress = 97 + (progressData.progress * 0.02); // 97-99% for indexing
-              message = `Індексуємо в векторну базу: ${progressData.progress}%`;
+              // Keep the detailed message from CLI ⭐ NEW
+              if (chunksProcessed > 0 && chunksTotal > 0) {
+                const chunkPercent = Math.round((chunksProcessed / chunksTotal) * 100);
+                message = `Індексуємо chunks: ${chunksProcessed}/${chunksTotal} (${chunkPercent}%)`;
+              }
               break;
             case 'complete':
               progress = 99;
@@ -484,6 +494,9 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
             statistics: {
               documentsProcessed: progressData.documentsProcessed,
               documentsTotal: progressData.totalDocuments,
+              // ⭐ NEW: Add chunks statistics
+              embeddingsProcessed: chunksProcessed || undefined,
+              embeddingsTotal: chunksTotal || undefined,
               elapsedTime
             }
           });
@@ -513,71 +526,31 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       }
     }
     
-    // Legacy parsing for backwards compatibility
+    // Legacy parsing for backwards compatibility (keep for fallback)
     if (line.includes('Loaded') && line.includes('documents')) {
       const match = line.match(/Loaded\s+(\d+)\s+documents/i);
       if (match) {
         const documentsTotal = parseInt(match[1]);
         updateSessionStatus(sessionId, {
-          progress: 76, // ⭐ Start of indexing
+          progress: 76,
           message: `Завантажили ${documentsTotal} документів для індексації...`,
           statistics: {
             documentsTotal,
-            documentsProcessed: 0, // ⭐ Starting processing
+            documentsProcessed: 0,
             elapsedTime
           }
         });
       }
     }
     
-    // Parse document processing progress ⭐ Legacy support
-    if (line.includes('Processing document')) {
-      const match = line.match(/Processing document\s+(\d+)\/(\d+)/i);
-      if (match) {
-        const current = parseInt(match[1]);
-        const total = parseInt(match[2]);
-        const docProgress = (current / total) * 100;
-        updateSessionStatus(sessionId, {
-          progress: 76 + (docProgress * 0.10), // 76-86% for document processing
-          message: `Обробляємо документи: ${current}/${total} (${Math.round(docProgress)}%)`,
-          statistics: {
-            documentsProcessed: current,
-            documentsTotal: total,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse chunking progress
+    // Parse created chunks info ⭐ NEW
     if (line.includes('Created') && line.includes('chunks')) {
       const match = line.match(/Created\s+(\d+)\s+chunks/i);
       if (match) {
         const chunksCreated = parseInt(match[1]);
         updateSessionStatus(sessionId, {
-          progress: 87, // ⭐ Chunking phase
-          message: `Створили ${chunksCreated} семантичних блоків...`,
           statistics: {
             chunksCreated,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse embedding generation progress ⭐ Legacy support
-    if (line.includes('Generating embeddings')) {
-      const match = line.match(/Generating embeddings\s+(\d+)\/(\d+)/i);
-      if (match) {
-        const current = parseInt(match[1]);
-        const total = parseInt(match[2]);
-        const embeddingProgress = (current / total) * 100;
-        updateSessionStatus(sessionId, {
-          progress: 88 + (embeddingProgress * 0.10), // 88-98% for embeddings
-          message: `Генеруємо векторні представлення: ${current}/${total} (${Math.round(embeddingProgress)}%)`,
-          statistics: {
-            embeddingsProcessed: current,
-            embeddingsTotal: total,
             elapsedTime
           }
         });
@@ -592,22 +565,6 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
         updateSessionStatus(sessionId, {
           statistics: {
             averageChunkSize,
-            elapsedTime
-          }
-        });
-      }
-    }
-    
-    // Parse indexing completion
-    if (line.includes('chunks indexed') || line.includes('Total in store')) {
-      const match = line.match(/(\d+)\s+(?:chunks indexed|Total in store)/i);
-      if (match) {
-        const embeddingsGenerated = parseInt(match[1]);
-        updateSessionStatus(sessionId, {
-          progress: 99, // ⭐ Nearly complete
-          message: `Проіндексували ${embeddingsGenerated} блоків у векторній базі...`,
-          statistics: {
-            embeddingsGenerated,
             elapsedTime
           }
         });

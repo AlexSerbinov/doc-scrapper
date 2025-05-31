@@ -126,7 +126,7 @@ export class ChromaVectorStore implements VectorStore {
     return this.currentCollectionName;
   }
 
-  async addDocuments(chunks: DocumentChunk[]): Promise<void> {
+  async addDocuments(chunks: DocumentChunk[], progressCallback?: (progress: number, current: number, total: number) => void): Promise<void> {
     if (!this.collection) {
       throw new Error('Vector store not initialized. Call initialize() first.');
     }
@@ -152,6 +152,7 @@ export class ChromaVectorStore implements VectorStore {
 
       // Add documents in batches to avoid memory issues
       const batchSize = 100;
+      
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batchEnd = Math.min(i + batchSize, chunks.length);
         const batchIds = ids.slice(i, batchEnd);
@@ -164,7 +165,16 @@ export class ChromaVectorStore implements VectorStore {
           metadatas: batchMetadatas,
         });
 
-        console.log(`📄 Added batch ${Math.floor(i/batchSize) + 1}: ${batchEnd - i} chunks`);
+        const currentBatch = Math.floor(i/batchSize) + 1;
+        const chunksProcessed = batchEnd;
+        
+        // Report progress ⭐ NEW
+        if (progressCallback) {
+          const progressPercent = Math.round((chunksProcessed / chunks.length) * 100);
+          progressCallback(progressPercent, chunksProcessed, chunks.length);
+        }
+
+        console.log(`📄 Added batch ${currentBatch}: ${batchEnd - i} chunks (${chunksProcessed}/${chunks.length})`);
       }
 
       console.log(`✅ Successfully added ${chunks.length} chunks to vector store`);

@@ -96,7 +96,7 @@ export interface ChatSession {
 // Vector Store interfaces
 export interface VectorStore {
   initialize(): Promise<void>;
-  addDocuments(chunks: DocumentChunk[]): Promise<void>;
+  addDocuments(chunks: DocumentChunk[], progressCallback?: (progress: number, current: number, total: number) => void): Promise<void>;
   similaritySearch(query: string, k: number): Promise<RetrievalResult>;
   deleteCollection(): Promise<void>;
   getCollectionInfo(): Promise<CollectionInfo>;
