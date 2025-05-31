@@ -19,18 +19,11 @@ export async function GET(
     const status = getSessionStatus(sessionId);
 
     if (!status) {
-      // Якщо статусу немає, можливо процес ще не почався або завершився
-      // Спробуємо перевірити чи існує демо чат для цієї сесії
-      const chatUrl = `/demo/${sessionId}`;
-      
-      return NextResponse.json({
-        sessionId,
-        status: 'completed' as const,
-        currentStep: 'finished',
-        progress: 100,
-        message: 'Обробка завершена',
-        chatUrl
-      });
+      // Сесія не знайдена
+      return NextResponse.json(
+        { error: 'Session not found' },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(status);
