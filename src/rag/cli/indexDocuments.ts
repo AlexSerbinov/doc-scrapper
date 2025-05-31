@@ -52,6 +52,17 @@ program
       const startTime = Date.now();
 
       await pipeline.indexDocuments(absolutePath, (status) => {
+        // Always output JSON progress for API parsing ⭐ NEW
+        const jsonProgress = {
+          stage: status.stage,
+          progress: status.progress,
+          message: status.message,
+          documentsProcessed: status.documentsProcessed,
+          totalDocuments: status.totalDocuments
+        };
+        console.log(`RAG_PROGRESS: ${JSON.stringify(jsonProgress)}`);
+        
+        // Verbose output for human readability
         if (options.verbose) {
           console.log(`[${status.stage.toUpperCase()}] ${status.progress}% - ${status.message}`);
           if (status.totalDocuments > 0) {
@@ -64,6 +75,14 @@ program
       
       // Show final summary
       const collectionInfo = await pipeline.getCollectionInfo();
+      
+      // Output completion JSON ⭐ NEW
+      const completionData = {
+        totalTime: totalTime / 1000,
+        collectionName: collectionInfo.name,
+        chunksIndexed: collectionInfo.documentCount
+      };
+      console.log(`RAG_COMPLETE: ${JSON.stringify(completionData)}`);
       
       console.log('\n🎉 Indexing completed successfully!');
       console.log('=====================================');

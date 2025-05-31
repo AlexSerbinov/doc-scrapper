@@ -444,7 +444,76 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
   const lines = output.split('\n').filter(line => line.trim());
   
   for (const line of lines) {
-    // Parse document loading
+    // Parse JSON progress from RAG CLI ⭐ NEW
+    if (line.includes('RAG_PROGRESS:')) {
+      try {
+        const jsonMatch = line.match(/RAG_PROGRESS:\s*(.+)$/);
+        if (jsonMatch) {
+          const progressData = JSON.parse(jsonMatch[1]);
+          
+          // Map RAG stages to progress percentages and messages
+          let progress = 75; // Start of indexing phase
+          let message = progressData.message;
+          
+          switch (progressData.stage) {
+            case 'loading':
+              progress = 76;
+              message = `Завантажили ${progressData.totalDocuments} документів для індексації...`;
+              break;
+            case 'chunking':
+              progress = 77 + (progressData.progress * 0.10); // 77-87% for chunking
+              message = `Створюємо семантичні блоки: ${progressData.progress}%`;
+              break;
+            case 'embedding':
+              progress = 87 + (progressData.progress * 0.10); // 87-97% for embeddings
+              message = `Генеруємо векторні представлення: ${progressData.progress}%`;
+              break;
+            case 'indexing':
+              progress = 97 + (progressData.progress * 0.02); // 97-99% for indexing
+              message = `Індексуємо в векторну базу: ${progressData.progress}%`;
+              break;
+            case 'complete':
+              progress = 99;
+              message = 'Завершуємо індексацію...';
+              break;
+          }
+          
+          updateSessionStatus(sessionId, {
+            progress: Math.round(progress),
+            message,
+            statistics: {
+              documentsProcessed: progressData.documentsProcessed,
+              documentsTotal: progressData.totalDocuments,
+              elapsedTime
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`[${sessionId}] Error parsing RAG_PROGRESS:`, error);
+      }
+    }
+    
+    // Parse completion data ⭐ NEW
+    if (line.includes('RAG_COMPLETE:')) {
+      try {
+        const jsonMatch = line.match(/RAG_COMPLETE:\s*(.+)$/);
+        if (jsonMatch) {
+          const completionData = JSON.parse(jsonMatch[1]);
+          updateSessionStatus(sessionId, {
+            progress: 100,
+            message: `Проіндексували ${completionData.chunksIndexed} блоків у векторній базі`,
+            statistics: {
+              embeddingsGenerated: completionData.chunksIndexed,
+              elapsedTime
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`[${sessionId}] Error parsing RAG_COMPLETE:`, error);
+      }
+    }
+    
+    // Legacy parsing for backwards compatibility
     if (line.includes('Loaded') && line.includes('documents')) {
       const match = line.match(/Loaded\s+(\d+)\s+documents/i);
       if (match) {
@@ -461,7 +530,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       }
     }
     
-    // Parse document processing progress ⭐ NEW
+    // Parse document processing progress ⭐ Legacy support
     if (line.includes('Processing document')) {
       const match = line.match(/Processing document\s+(\d+)\/(\d+)/i);
       if (match) {
@@ -496,7 +565,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       }
     }
     
-    // Parse embedding generation progress ⭐ NEW
+    // Parse embedding generation progress ⭐ Legacy support
     if (line.includes('Generating embeddings')) {
       const match = line.match(/Generating embeddings\s+(\d+)\/(\d+)/i);
       if (match) {
