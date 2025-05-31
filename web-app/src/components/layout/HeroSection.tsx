@@ -70,8 +70,18 @@ export function HeroSection() {
 
   return (
     <>
-      <section id="hero" className="min-h-screen bg-slate-900 pt-20 flex items-center justify-center">
-        <div className="max-w-4xl mx-auto text-center w-full px-4 sm:px-6 lg:px-8">
+      <section 
+        id="hero" 
+        className="relative min-h-screen bg-gradient-radial from-indigo-900 via-slate-900 to-black pt-20 flex items-center justify-center overflow-hidden"
+      >
+        {/* Космічний пил - CSS версія */}
+        <div className="absolute inset-0 cosmic-background">
+          <div className="cosmic-stars"></div>
+          <div className="cosmic-stars cosmic-stars-2"></div>
+          <div className="cosmic-stars cosmic-stars-3"></div>
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center w-full px-4 sm:px-6 lg:px-8">
           {/* Заголовок */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-slate-100 mb-6 leading-tight">
             Розблокуйте Силу Вашої{" "}
@@ -95,7 +105,7 @@ export function HeroSection() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://docs.yourproject.com"
-                  className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
+                  className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-slate-800/70 backdrop-blur-sm border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
                   required
                   disabled={isLoading}
                 />
@@ -139,12 +149,12 @@ export function HeroSection() {
               Працює з усіма популярними платформами документації:
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-6 text-slate-400 text-sm">
-              <span className="bg-slate-800/50 px-3 py-1 rounded">GitBook</span>
-              <span className="bg-slate-800/50 px-3 py-1 rounded">Notion</span>
-              <span className="bg-slate-800/50 px-3 py-1 rounded">Confluence</span>
-              <span className="bg-slate-800/50 px-3 py-1 rounded">GitLab Pages</span>
-              <span className="bg-slate-800/50 px-3 py-1 rounded">Sphinx</span>
-              <span className="bg-slate-800/50 px-3 py-1 rounded">MkDocs</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">GitBook</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">Notion</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">Confluence</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">GitLab Pages</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">Sphinx</span>
+              <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">MkDocs</span>
             </div>
           </div>
         </div>

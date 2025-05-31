@@ -25,8 +25,8 @@ export class DocumentationScraper implements Scraper {
   constructor() {
     const httpOptions: HttpClientOptions = {
       timeout: 30000,
-      maxRetries: 3,
-      retryDelay: 1000,
+      maxRetries: 25,
+      retryDelay: 50,
       userAgent: 'DocumentationScraper/1.0.0 (Educational Purpose)'
     };
 
