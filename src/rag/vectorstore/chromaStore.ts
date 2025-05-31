@@ -7,9 +7,11 @@ export class ChromaVectorStore implements VectorStore {
   private collection: Collection | null = null;
   private config: VectorStoreConfig;
   private embeddingFunction: OpenAIEmbeddingFunction | null = null;
+  private currentCollectionName: string;
 
-  constructor() {
+  constructor(collectionName?: string) {
     this.config = RAGConfigService.getInstance().config.vectorStore;
+    this.currentCollectionName = collectionName || this.config.collectionName;
   }
 
   async initialize(): Promise<void> {
@@ -32,15 +34,15 @@ export class ChromaVectorStore implements VectorStore {
       // Try to get existing collection
       try {
         this.collection = await this.client.getCollection({
-          name: this.config.collectionName,
+          name: this.currentCollectionName,
           embeddingFunction: this.embeddingFunction,
         });
         
-        console.log(`✅ Connected to existing collection: ${this.config.collectionName}`);
+        console.log(`✅ Connected to existing collection: ${this.currentCollectionName}`);
       } catch (error: any) {
         // Collection doesn't exist, create it
         this.collection = await this.client.createCollection({
-          name: this.config.collectionName,
+          name: this.currentCollectionName,
           embeddingFunction: this.embeddingFunction,
           metadata: { 
             description: 'Documentation chunks for RAG system',
@@ -48,12 +50,80 @@ export class ChromaVectorStore implements VectorStore {
           },
         });
         
-        console.log(`✅ Created new collection: ${this.config.collectionName}`);
+        console.log(`✅ Created new collection: ${this.currentCollectionName}`);
       }
     } catch (error: any) {
       console.error('❌ Failed to initialize ChromaDB:', error);
       throw new Error(`ChromaDB initialization failed: ${error.message || 'Unknown error'}`);
     }
+  }
+
+  // NEW: Method to switch to a different collection
+  async switchCollection(collectionName: string): Promise<void> {
+    if (!this.client || !this.embeddingFunction) {
+      throw new Error('ChromaDB client not initialized');
+    }
+
+    try {
+      // Try to get existing collection
+      this.collection = await this.client.getCollection({
+        name: collectionName,
+        embeddingFunction: this.embeddingFunction,
+      });
+      
+      this.currentCollectionName = collectionName;
+      console.log(`✅ Switched to collection: ${collectionName}`);
+    } catch (error: any) {
+      // Collection doesn't exist, create it
+      this.collection = await this.client.createCollection({
+        name: collectionName,
+        embeddingFunction: this.embeddingFunction,
+        metadata: { 
+          description: 'Documentation chunks for RAG system',
+          created_at: new Date().toISOString(),
+        },
+      });
+      
+      this.currentCollectionName = collectionName;
+      console.log(`✅ Created and switched to new collection: ${collectionName}`);
+    }
+  }
+
+  // NEW: Method to get all available collections
+  async listCollections(): Promise<Array<{name: string, count: number}>> {
+    if (!this.client || !this.embeddingFunction) {
+      throw new Error('ChromaDB client not initialized');
+    }
+
+    try {
+      const collections = await this.client.listCollections();
+      const collectionInfos = [];
+
+      for (const collectionName of collections) {
+        try {
+          const coll = await this.client.getCollection({ 
+            name: collectionName,
+            embeddingFunction: this.embeddingFunction 
+          });
+          const count = await coll.count();
+          collectionInfos.push({
+            name: collectionName,
+            count: count
+          });
+        } catch (error) {
+          console.warn(`Failed to get info for collection ${collectionName}:`, error);
+        }
+      }
+
+      return collectionInfos;
+    } catch (error: any) {
+      console.error('Error listing collections:', error);
+      throw new Error(`Failed to list collections: ${error.message || 'Unknown error'}`);
+    }
+  }
+
+  getCurrentCollectionName(): string {
+    return this.currentCollectionName;
   }
 
   async addDocuments(chunks: DocumentChunk[]): Promise<void> {

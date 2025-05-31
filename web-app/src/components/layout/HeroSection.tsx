@@ -9,6 +9,8 @@ export function HeroSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [submittedUrl, setSubmittedUrl] = useState("");
+  const [sessionId, setSessionId] = useState("");
+  const [collectionName, setCollectionName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,17 +27,45 @@ export function HeroSection() {
       return;
     }
 
-    // Симулювати початкову валідацію
-    setTimeout(() => {
+    try {
+      // Викликаємо реальний API для початку scraping'у
+      const response = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to start scraping');
+      }
+
+      if (result.success) {
+        setSubmittedUrl(url);
+        setSessionId(result.sessionId);
+        setCollectionName(result.collectionName);
+        setShowProcessingModal(true);
+        console.log('Scraping started:', result);
+      } else {
+        throw new Error(result.message || 'Unknown error');
+      }
+
+    } catch (error) {
+      console.error('Error starting scraping:', error);
+      alert(`Помилка запуску обробки: ${error instanceof Error ? error.message : 'Невідома помилка'}`);
+    } finally {
       setIsLoading(false);
-      setSubmittedUrl(url);
-      setShowProcessingModal(true);
-    }, 1000);
+    }
   };
 
   const handleModalClose = () => {
     setShowProcessingModal(false);
     setUrl(""); // Очистити форму
+    setSessionId("");
+    setCollectionName("");
   };
 
   return (
@@ -78,7 +108,7 @@ export function HeroSection() {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Перевіряємо...
+                    Запускаємо...
                   </>
                 ) : (
                   <>
@@ -125,6 +155,8 @@ export function HeroSection() {
         isOpen={showProcessingModal}
         onClose={handleModalClose}
         url={submittedUrl}
+        sessionId={sessionId}
+        collectionName={collectionName}
       />
     </>
   );
