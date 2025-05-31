@@ -74,11 +74,26 @@ export function HeroSection() {
         id="hero" 
         className="relative min-h-screen bg-gradient-radial from-indigo-900 via-slate-900 to-black pt-20 flex items-center justify-center overflow-hidden"
       >
-        {/* Космічний пил - CSS версія */}
+        {/* Intensive Cosmic Effects - Additional layer for Hero */}
         <div className="absolute inset-0 cosmic-background">
-          <div className="cosmic-stars"></div>
-          <div className="cosmic-stars cosmic-stars-2"></div>
-          <div className="cosmic-stars cosmic-stars-3"></div>
+          <div className="cosmic-stars opacity-100"></div>
+          <div className="cosmic-stars cosmic-stars-2 opacity-90"></div>
+          <div className="cosmic-stars cosmic-stars-3 opacity-80"></div>
+          
+          {/* Additional bright stars layer for Hero */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: `
+              radial-gradient(3px 3px at 15% 25%, rgba(255,255,255,0.8), transparent),
+              radial-gradient(2px 2px at 85% 15%, rgba(220,230,255,0.9), transparent),
+              radial-gradient(4px 4px at 45% 75%, rgba(255,255,255,0.7), transparent),
+              radial-gradient(2px 2px at 25% 85%, rgba(180,200,255,0.8), transparent),
+              radial-gradient(3px 3px at 75% 45%, rgba(255,255,255,0.6), transparent),
+              radial-gradient(2px 2px at 55% 15%, rgba(220,230,255,0.7), transparent),
+              radial-gradient(4px 4px at 5% 65%, rgba(255,255,255,0.8), transparent),
+              radial-gradient(2px 2px at 95% 85%, rgba(180,200,255,0.9), transparent)
+            `,
+            animation: 'cosmicFloat 40s linear infinite'
+          }}></div>
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center w-full px-4 sm:px-6 lg:px-8">

@@ -29,8 +29,11 @@ export default function RootLayout({
   return (
     <html lang="uk" className="dark">
       <body className={inter.className}>
+        {/* Global cosmic background stars */}
+        <div className="global-cosmic-stars"></div>
+        
         <Header />
-        <main className="min-h-screen">
+        <main className="min-h-screen relative z-0">
         {children}
         </main>
       </body>

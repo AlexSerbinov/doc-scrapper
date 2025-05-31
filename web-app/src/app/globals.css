@@ -154,22 +154,35 @@ body {
 /* Cosmic Dust Effects */
 @keyframes cosmicTwinkle {
   0% { 
-    opacity: 0.1; 
+    opacity: 0.3; 
     transform: scale(0.8); 
   }
   50% { 
-    opacity: 0.8; 
+    opacity: 1; 
     transform: scale(1.2); 
   }
   100% { 
-    opacity: 0.3; 
+    opacity: 0.6; 
     transform: scale(1); 
   }
 }
 
 .cosmic-dust-particle {
-  background: radial-gradient(circle, rgba(220, 230, 255, 0.8) 0%, rgba(180, 200, 255, 0.3) 100%);
+  background: radial-gradient(circle, rgba(220, 230, 255, 0.9) 0%, rgba(180, 200, 255, 0.5) 100%);
   filter: blur(0.5px);
+}
+
+/* Global Cosmic Background */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.8) 50%, rgba(2, 6, 23, 1) 100%);
+  z-index: -2;
+  pointer-events: none;
 }
 
 /* Cosmic Stars Background */
@@ -184,16 +197,16 @@ body {
   right: 0;
   bottom: 0;
   background-image: 
-    radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.15), transparent),
-    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 20px 90px, rgba(220,230,255,0.15), transparent),
-    radial-gradient(2px 2px at 50px 120px, rgba(220,230,255,0.1), transparent),
-    radial-gradient(1px 1px at 80px 100px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 120px 50px, rgba(220,230,255,0.1), transparent),
-    radial-gradient(2px 2px at 150px 90px, rgba(255,255,255,0.1), transparent);
+    radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 160px 30px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 20px 90px, rgba(220,230,255,0.5), transparent),
+    radial-gradient(2px 2px at 50px 120px, rgba(220,230,255,0.4), transparent),
+    radial-gradient(1px 1px at 80px 100px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 120px 50px, rgba(220,230,255,0.4), transparent),
+    radial-gradient(2px 2px at 150px 90px, rgba(255,255,255,0.5), transparent);
   background-repeat: repeat;
   background-size: 200px 150px;
   animation: cosmicFloat 20s linear infinite;
@@ -201,14 +214,14 @@ body {
 
 .cosmic-stars-2 {
   background-image: 
-    radial-gradient(1px 1px at 30px 40px, rgba(180,200,255,0.2), transparent),
-    radial-gradient(1px 1px at 70px 80px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(2px 2px at 110px 20px, rgba(220,230,255,0.15), transparent),
-    radial-gradient(1px 1px at 140px 60px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 10px 80px, rgba(180,200,255,0.1), transparent),
-    radial-gradient(2px 2px at 60px 30px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 100px 70px, rgba(220,230,255,0.1), transparent),
-    radial-gradient(1px 1px at 170px 40px, rgba(255,255,255,0.15), transparent);
+    radial-gradient(1px 1px at 30px 40px, rgba(180,200,255,0.6), transparent),
+    radial-gradient(1px 1px at 70px 80px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 110px 20px, rgba(220,230,255,0.5), transparent),
+    radial-gradient(1px 1px at 140px 60px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 10px 80px, rgba(180,200,255,0.4), transparent),
+    radial-gradient(2px 2px at 60px 30px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 100px 70px, rgba(220,230,255,0.4), transparent),
+    radial-gradient(1px 1px at 170px 40px, rgba(255,255,255,0.6), transparent);
   background-repeat: repeat;
   background-size: 180px 120px;
   animation: cosmicFloat 15s linear infinite reverse;
@@ -216,16 +229,37 @@ body {
 
 .cosmic-stars-3 {
   background-image: 
-    radial-gradient(1px 1px at 25px 60px, rgba(200,220,255,0.1), transparent),
-    radial-gradient(2px 2px at 65px 90px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 95px 45px, rgba(180,200,255,0.1), transparent),
-    radial-gradient(1px 1px at 125px 75px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(2px 2px at 5px 35px, rgba(220,230,255,0.1), transparent),
-    radial-gradient(1px 1px at 45px 15px, rgba(255,255,255,0.1), transparent),
-    radial-gradient(1px 1px at 85px 85px, rgba(180,200,255,0.15), transparent);
+    radial-gradient(1px 1px at 25px 60px, rgba(200,220,255,0.4), transparent),
+    radial-gradient(2px 2px at 65px 90px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 95px 45px, rgba(180,200,255,0.3), transparent),
+    radial-gradient(1px 1px at 125px 75px, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 5px 35px, rgba(220,230,255,0.3), transparent),
+    radial-gradient(1px 1px at 45px 15px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 85px 85px, rgba(180,200,255,0.5), transparent);
   background-repeat: repeat;
   background-size: 150px 100px;
   animation: cosmicFloat 25s linear infinite;
+}
+
+/* Global stars for all pages */
+.global-cosmic-stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 20% 80%, rgba(220,230,255,0.2), transparent),
+    radial-gradient(2px 2px at 40% 40%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 60% 90%, rgba(180,200,255,0.3), transparent),
+    radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.2), transparent),
+    radial-gradient(2px 2px at 90% 50%, rgba(220,230,255,0.3), transparent),
+    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 70% 30%, rgba(180,200,255,0.2), transparent);
+  animation: cosmicFloat 30s linear infinite;
 }
 
 @keyframes cosmicFloat {
