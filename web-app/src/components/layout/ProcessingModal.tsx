@@ -1,7 +1,8 @@
 "use client";
 
-import { X, CheckCircle, Loader, AlertCircle, ExternalLink } from "lucide-react";
+import { X, CheckCircle, Loader, AlertCircle, ExternalLink, FileText } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { ConsolidatedDocsViewer } from "../ConsolidatedDocsViewer";
 
 interface ProcessingModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
   const [progressStatus, setProgressStatus] = useState<ProgressStatus | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConsolidation, setShowConsolidation] = useState(false);
 
   // Функція для отримання статусу прогресу
   const fetchProgress = useCallback(async () => {
@@ -169,6 +171,15 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
     }
   }, [isOpen]);
 
+  // Новий обробник для показу consolidation
+  const handleShowConsolidation = () => {
+    setShowConsolidation(true);
+  };
+
+  const handleCloseConsolidation = () => {
+    setShowConsolidation(false);
+  };
+
   if (!isOpen) return null;
 
   const getStepIcon = (status: ProcessingStep['status']) => {
@@ -204,6 +215,21 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
 
   const isCompleted = progressStatus?.status === 'completed';
   const hasError = progressStatus?.status === 'error' || error;
+
+  // Показ consolidation viewer
+  if (showConsolidation) {
+    return (
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+          <ConsolidatedDocsViewer
+            collectionName={collectionName}
+            projectName={getDomainFromUrl(url)}
+            onClose={handleCloseConsolidation}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -304,18 +330,35 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
           <div className="mb-6">
             <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4">
               <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-green-400 font-medium text-center">
-                Готово! Перенаправляємо вас до чату...
+              <p className="text-green-400 font-medium text-center mb-4">
+                Готово! Ваш AI помічник створено успішно
               </p>
-              {progressStatus?.chatUrl && (
-                <a
-                  href={progressStatus.chatUrl}
-                  className="mt-3 w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors flex items-center justify-center gap-2"
+              
+              {/* Основні дії */}
+              <div className="space-y-3">
+                {progressStatus?.chatUrl && (
+                  <a
+                    href={progressStatus.chatUrl}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
+                  >
+                    Перейти до чату з AI
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+                
+                {/* Кнопка для consolidation */}
+                <button
+                  onClick={handleShowConsolidation}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
                 >
-                  Перейти до чату
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              )}
+                  <FileText className="w-4 h-4" />
+                  Отримати Документацію в Одному Файлі
+                </button>
+                
+                <p className="text-xs text-green-300 text-center mt-2">
+                  💡 Ідеально для використання з ChatGPT, Gemini чи Claude
+                </p>
+              </div>
             </div>
           </div>
         )}

@@ -3,6 +3,7 @@ import cors from 'cors';
 import { DocumentationRAGPipeline } from '../core/ragPipeline.js';
 import { spawn } from 'child_process';
 import path from 'path';
+import { DocConsolidator } from '../../utils/contentStructExporter.js';
 
 const app = express();
 const PORT = process.env.RAG_SERVER_PORT || 8001;
@@ -330,6 +331,57 @@ app.post('/switch-collection', async (req, res) => {
   }
 });
 
+// Consolidate endpoint - generates consolidated markdown file
+app.post('/consolidate', async (req, res) => {
+  try {
+    const { collectionName, projectName } = req.body;
+    
+    if (!collectionName) {
+      return res.status(400).json({
+        error: 'Collection name is required'
+      });
+    }
+
+    console.log(`🔄 Starting consolidation for collection: ${collectionName}`);
+    
+    const projectRoot = process.cwd();
+    const documentsPath = path.join(projectRoot, 'scraped-docs', collectionName);
+    
+    // Check if scraped docs exist
+    const fs = await import('fs');
+    if (!fs.existsSync(documentsPath)) {
+      return res.status(404).json({
+        error: `Scraped documentation not found for collection: ${collectionName}`
+      });
+    }
+
+    // Initialize consolidator
+    const consolidator = new DocConsolidator({
+      deleteComments: false,
+      outputDirectory: path.join(projectRoot, 'consolidation-output'),
+      includeBinaryFiles: false
+    });
+
+    // Generate consolidated markdown
+    const result = await consolidator.consolidate(documentsPath, projectName || collectionName);
+    
+    console.log(`✅ Consolidation completed! Files: ${result.stats.totalFiles}, Estimated tokens: ${result.stats.estimatedTokens}`);
+
+    return res.json({
+      success: true,
+      markdown: result.markdown,
+      stats: result.stats,
+      message: `Successfully consolidated ${result.stats.totalFiles} files`
+    });
+
+  } catch (error: any) {
+    console.error('❌ Consolidation error:', error);
+    return res.status(500).json({
+      error: error.message || 'Internal server error during consolidation'
+    });
+  }
+});
+
 // Start server
 async function startServer() {
   try {
@@ -344,6 +396,7 @@ async function startServer() {
       console.log(`   GET  /stats     - Collection stats`);
       console.log(`   GET  /collections - List collections`);
       console.log(`   POST /switch-collection - Switch collection`);
+      console.log(`   POST /consolidate - Consolidate markdown`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
