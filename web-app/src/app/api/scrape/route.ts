@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import { updateSessionStatus } from '@/lib/sessionStatus';
 import { getScraperPath, getRagIndexerPath, getScrapedDocsPath, getProjectRoot, validatePaths } from '@/lib/paths';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load .env from project root (parent directory of web-app) ⭐ NEW
+const rootDir = path.resolve(process.cwd(), '..');
+const envPath = path.join(rootDir, '.env');
+console.log('Loading .env from:', envPath);
+dotenv.config({ path: envPath });
 
 interface ScrapeRequest {
   url: string;
@@ -149,15 +157,27 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
     });
 
     // Enhanced scraper arguments with verbose output
-    const scraperChild = spawn('node', [
+    const concurrency = process.env.SCRAPER_CONCURRENCY || '25';
+    const delay = process.env.SCRAPER_DELAY || '10';
+    
+    console.log(`[${sessionId}] 🔧 Scraper config - Concurrency: ${concurrency}, Delay: ${delay}ms`);
+    
+    const scraperArgs = [
       scraperPath,
       url,
       '--output', outputPath,
       '--format', 'markdown',
       '--verbose', // ⭐ Always enable verbose for detailed output
-      '--concurrency', '5',
-      '--delay', '1000'
-    ], {
+      '--concurrency', concurrency, // ⭐ Use env var with fallback
+      '--delay', delay // ⭐ Use env var with fallback
+    ];
+
+    // Add max-pages limit if specified in environment ⭐ NEW
+    if (process.env.SCRAPER_MAX_PAGES && process.env.SCRAPER_MAX_PAGES !== '0') {
+      scraperArgs.push('--max-pages', process.env.SCRAPER_MAX_PAGES);
+    }
+
+    const scraperChild = spawn('node', scraperArgs, {
       cwd: projectRoot,
       stdio: 'pipe'
     });
@@ -304,12 +324,13 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
           const completion = JSON.parse(jsonMatch[1]);
           updateSessionStatus(sessionId, {
             status: 'scraping',
-            progress: 70,
+            progress: 74, // ⭐ Final scraping progress before indexing
             message: `Скрапінг завершено: ${completion.successfulPages} сторінок успішно`,
             statistics: {
               successfulPages: completion.successfulPages,
               failedPages: completion.failedPages,
               totalBytes: completion.totalBytes,
+              urlsProcessed: completion.successfulPages, // ⭐ Make sure processed matches successful
               elapsedTime
             }
           });
@@ -429,10 +450,30 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       if (match) {
         const documentsTotal = parseInt(match[1]);
         updateSessionStatus(sessionId, {
-          progress: 78,
+          progress: 76, // ⭐ Start of indexing
           message: `Завантажили ${documentsTotal} документів для індексації...`,
           statistics: {
             documentsTotal,
+            documentsProcessed: 0, // ⭐ Starting processing
+            elapsedTime
+          }
+        });
+      }
+    }
+    
+    // Parse document processing progress ⭐ NEW
+    if (line.includes('Processing document')) {
+      const match = line.match(/Processing document\s+(\d+)\/(\d+)/i);
+      if (match) {
+        const current = parseInt(match[1]);
+        const total = parseInt(match[2]);
+        const docProgress = (current / total) * 100;
+        updateSessionStatus(sessionId, {
+          progress: 76 + (docProgress * 0.10), // 76-86% for document processing
+          message: `Обробляємо документи: ${current}/${total} (${Math.round(docProgress)}%)`,
+          statistics: {
+            documentsProcessed: current,
+            documentsTotal: total,
             elapsedTime
           }
         });
@@ -445,10 +486,29 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       if (match) {
         const chunksCreated = parseInt(match[1]);
         updateSessionStatus(sessionId, {
-          progress: 85,
+          progress: 87, // ⭐ Chunking phase
           message: `Створили ${chunksCreated} семантичних блоків...`,
           statistics: {
             chunksCreated,
+            elapsedTime
+          }
+        });
+      }
+    }
+    
+    // Parse embedding generation progress ⭐ NEW
+    if (line.includes('Generating embeddings')) {
+      const match = line.match(/Generating embeddings\s+(\d+)\/(\d+)/i);
+      if (match) {
+        const current = parseInt(match[1]);
+        const total = parseInt(match[2]);
+        const embeddingProgress = (current / total) * 100;
+        updateSessionStatus(sessionId, {
+          progress: 88 + (embeddingProgress * 0.10), // 88-98% for embeddings
+          message: `Генеруємо векторні представлення: ${current}/${total} (${Math.round(embeddingProgress)}%)`,
+          statistics: {
+            embeddingsProcessed: current,
+            embeddingsTotal: total,
             elapsedTime
           }
         });
@@ -475,7 +535,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
       if (match) {
         const embeddingsGenerated = parseInt(match[1]);
         updateSessionStatus(sessionId, {
-          progress: 95,
+          progress: 99, // ⭐ Nearly complete
           message: `Проіндексували ${embeddingsGenerated} блоків у векторній базі...`,
           statistics: {
             embeddingsGenerated,

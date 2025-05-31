@@ -29,6 +29,8 @@ interface ProgressStatus {
     chunksCreated?: number;
     averageChunkSize?: number; // tokens
     embeddingsGenerated?: number;
+    embeddingsProcessed?: number; // ⭐ NEW for tracking embedding progress
+    embeddingsTotal?: number; // ⭐ NEW for total embeddings to generate
     indexingRate?: number; // documents per second
     
     // Timing

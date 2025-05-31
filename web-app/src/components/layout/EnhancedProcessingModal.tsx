@@ -79,13 +79,6 @@ export function EnhancedProcessingModal({
         // Якщо завершено або помилка, зупиняємо polling
         if (status.status === 'completed' || status.status === 'error') {
           setIsPolling(false);
-          
-          if (status.status === 'completed' && status.chatUrl) {
-            // Перенаправляємо на чат через 3 секунди
-            setTimeout(() => {
-              window.location.href = status.chatUrl!;
-            }, 3000);
-          }
         }
       } else {
         console.error('Failed to fetch progress');
@@ -160,12 +153,23 @@ export function EnhancedProcessingModal({
           if (step.id === 'analyze' || step.id === 'scrape') {
             return { ...step, status: 'completed' };
           } else if (step.id === 'process') {
+            // Enhanced AI processing details ⭐ NEW
+            let details = status.message;
+            
+            if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
+              details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
+            } else if (status.statistics?.chunksCreated) {
+              details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
+            } else if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
+              details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
+            } else if (status.statistics?.embeddingsGenerated) {
+              details = `Проіндексовано ${status.statistics.embeddingsGenerated} блоків`;
+            }
+            
             return { 
               ...step, 
               status: 'processing',
-              details: status.statistics?.documentsTotal
-                ? `${status.statistics.documentsProcessed || 0}/${status.statistics.documentsTotal} документів`
-                : status.message 
+              details
             };
           }
           return step;
@@ -448,6 +452,17 @@ export function EnhancedProcessingModal({
                       {progressStatus.statistics.documentsProcessed || 0}/{progressStatus.statistics.documentsTotal}
                     </div>
                     <div className="text-xs text-slate-400">Документів</div>
+                  </div>
+                )}
+
+                {/* Embeddings Progress */}
+                {progressStatus.statistics.embeddingsProcessed && progressStatus.statistics.embeddingsTotal && (
+                  <div className="bg-slate-700 rounded-lg p-3 text-center">
+                    <Zap className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-yellow-400">
+                      {progressStatus.statistics.embeddingsProcessed}/{progressStatus.statistics.embeddingsTotal}
+                    </div>
+                    <div className="text-xs text-slate-400">Embeddings</div>
                   </div>
                 )}
 
