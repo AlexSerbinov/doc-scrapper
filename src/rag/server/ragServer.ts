@@ -365,12 +365,21 @@ app.post('/consolidate', async (req, res) => {
     // Generate consolidated markdown
     const result = await consolidator.consolidate(documentsPath, projectName || collectionName);
     
+    // Optionally save to file (for debugging)
+    let fileName: string | undefined;
+    try {
+      fileName = await consolidator.saveConsolidatedFile(result.markdown, projectName || collectionName);
+    } catch (error) {
+      console.warn('Could not save consolidated file:', error);
+    }
+    
     console.log(`✅ Consolidation completed! Files: ${result.stats.totalFiles}, Estimated tokens: ${result.stats.estimatedTokens}`);
 
     return res.json({
       success: true,
       markdown: result.markdown,
       stats: result.stats,
+      fileName: fileName ? path.basename(fileName) : undefined,
       message: `Successfully consolidated ${result.stats.totalFiles} files`
     });
 
