@@ -5,10 +5,11 @@ const RAG_SERVER_URL = process.env.RAG_SERVER_URL || 'http://localhost:8001';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, trialId } = body;
+    const { message, trialId, collectionName } = body;
 
     // TODO: Use trialId for analytics and rate limiting
     console.log('Trial ID:', trialId);
+    console.log('Collection:', collectionName);
 
     if (!message) {
       return NextResponse.json(
@@ -17,13 +18,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prepare request body for RAG server
+    const ragRequestBody: { message: string; collectionName?: string } = { message };
+    
+    // Add collectionName if provided
+    if (collectionName) {
+      ragRequestBody.collectionName = collectionName;
+    }
+
     // Forward request to RAG server
     const response = await fetch(`${RAG_SERVER_URL}/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify(ragRequestBody),
     });
 
     if (!response.ok) {

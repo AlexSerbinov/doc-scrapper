@@ -10,13 +10,27 @@ export class DocumentationRAGPipeline implements RAGPipeline {
   private vectorStore: ChromaVectorStore;
   private config: any;
 
-  constructor() {
-    this.vectorStore = new ChromaVectorStore();
+  constructor(collectionName?: string) {
+    this.vectorStore = new ChromaVectorStore(collectionName);
     this.config = RAGConfigService.getInstance().config;
   }
 
   async initialize(): Promise<void> {
     await this.vectorStore.initialize();
+  }
+
+  // NEW: Method to switch collection for session-specific queries
+  async switchCollection(collectionName: string): Promise<void> {
+    await this.vectorStore.switchCollection(collectionName);
+  }
+
+  // NEW: Method to get all available collections
+  async listCollections(): Promise<Array<{name: string, count: number}>> {
+    return await this.vectorStore.listCollections();
+  }
+
+  getCurrentCollectionName(): string {
+    return this.vectorStore.getCurrentCollectionName();
   }
 
   async indexDocuments(documentsPath: string, progressCallback?: ProgressCallback): Promise<void> {

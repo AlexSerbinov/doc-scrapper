@@ -280,3 +280,361 @@ html, body {
 - Правильні permissions для директорій
 
 **Статус:** ✅ ВИРІШЕНО
+
+## Проблема #2: Next.js Build Errors - API Route Utility Functions (10.01.2025)
+
+**Симптоми**: 
+- Next.js build падав з помилкою: `Route "src/app/api/progress/[sessionId]/route.ts" does not match the required types of a Next.js Route. "updateSessionStatus" is not a valid Route export field.`
+- TypeScript помилки з параметрами функцій
+- ESLint warnings з невикористаними змінними  
+- React warnings з неескейпованими entities
+
+**Діагностика**: 
+1. Next.js API routes можуть експортувати тільки HTTP методи: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+2. Utility функції `updateSessionStatus`, `getSessionStatus`, `removeSessionStatus` не є валідними експортами
+3. Next.js 15 змінив типи params на асинхронні `Promise<{}>`
+4. Наявність ESLint помилок заблокувала build
+
+**Рішення**:
+1. **Винесення utility функцій**: Створено `web-app/src/lib/sessionStatus.ts` з усіма utility функціями
+2. **Очистка API routes**: Видалено всі non-HTTP експорти з API route файлів
+3. **Оновлення імпортів**: Змінено імпорти в `/api/scrape/route.ts` з API route на utility file
+4. **Виправлення типів Next.js 15**: 
+   ```typescript
+   // Було
+   { params }: { params: { sessionId: string } }
+   // Стало  
+   { params }: { params: Promise<{ sessionId: string }> }
+   const { sessionId } = await params;
+   ```
+5. **ESLint fixes**: Видалено невикористані параметри, виправлено HTML entities, замінено `<a>` на `<Link>`
+
+**Код до**:
+```typescript
+// В API route файлі - НЕПРАВИЛЬНО
+export function updateSessionStatus(...) { ... }
+export function getSessionStatus(...) { ... }
+export async function GET(...) { ... }
+```
+
+**Код після**:
+```typescript
+// web-app/src/lib/sessionStatus.ts
+export function updateSessionStatus(...) { ... }
+export function getSessionStatus(...) { ... }
+
+// web-app/src/app/api/progress/[sessionId]/route.ts  
+import { getSessionStatus } from '@/lib/sessionStatus';
+export async function GET(...) { ... } // Тільки HTTP методи
+```
+
+**Результат**: 
+- ✅ Build проходить успішно без помилок (`npm run build` ✓)
+- ✅ Всі ESLint warnings виправлені  
+- ✅ TypeScript типи відповідають Next.js 15 стандартам
+- ✅ Development server запускається без проблем
+- ✅ API functionality зберігається повністю
+
+**Уроки**:
+- Next.js API routes мають строгі правила експортів
+- Utility функції потрібно виносити в окремі файли (lib/, utils/)
+- Next.js 15 змінив типи params на асинхронні Promise<{}>
+- Path aliases (@/lib/*) допомагають з чистими імпортами
+
+**Статус**: ✅ ВИРІШЕНО
+
+## Проблема #3: Форма активації тріалу НЕ ПРАЦЮВАЛА (31.05.2025) ⭐ КРИТИЧНА
+
+**Симптоми**: 
+- Користувач вставляє URL документації у форму → нічого не відбувається
+- Помилка "Route does not match required types" при build
+- "updateSessionStatus is not a valid Route export field"
+- ProcessingModal показував тільки симуляцію замість реального процесу
+- API endpoint `/api/scrape` не існував
+
+**Діагностика**: 
+1. **Next.js API Route проблеми**: Utility функції не можуть бути експортовані з API routes
+2. **Path resolution помилки**: Next.js не міг знайти compiled scraper файли
+3. **Missing API endpoint**: Форма намагалася відправити запит на неіснуючий endpoint  
+4. **Mock vs Real logic**: ProcessingModal використовував симуляцію замість реального progress tracking
+
+**Рішення**:
+1. **Створено повний API infrastructure**:
+   - `web-app/src/app/api/scrape/route.ts` - основний endpoint для прийому URL
+   - `web-app/src/app/api/progress/[sessionId]/route.ts` - real-time progress tracking
+   - `web-app/src/lib/sessionStatus.ts` - utility функції для session management
+
+2. **Виправлено Next.js API routes**:
+   - Винесено utility функції в окремий lib файл
+   - Залишено тільки HTTP методи (GET, POST) як експорти
+   - Оновлено типи для Next.js 15: `{ params }: { params: Promise<{ sessionId: string }> }`
+
+3. **Виправлено Path Resolution**:
+   - Створено `web-app/src/lib/paths.ts` з utility функціями для path management
+   - Додано validation що compiled files існують перед запуском
+   - Використано абсолютні шляхи замість відносних для reliability
+
+4. **Інтегровано Real Processing**:
+   - `ProcessingModal.tsx` тепер polling API кожні 2 секунди для real status
+   - Session management з in-memory storage (Map-based)
+   - Автоматичний cleanup старих сесій через setInterval
+
+5. **Full Pipeline Integration**:
+   ```
+   User URL Input → /api/scrape → spawn scraper process → 
+   scraped-docs/collection/ → spawn RAG indexer → 
+   ChromaDB collection → /demo/sessionId ready
+   ```
+
+**Архітектура рішення**:
+- **SessionID**: timestamp + URL hash для унікальності
+- **CollectionName**: domain-path format compatible з ChromaDB
+- **Progress States**: starting → scraping → indexing → completed/error
+- **Process Management**: spawn окремих node процесів для scraper та RAG indexer
+- **Environment Variables**: COLLECTION_NAME для динамічного collection switching
+
+**Код приклади**:
+```typescript
+// API Route - тільки HTTP методи
+export async function POST(request: NextRequest) {
+  // Process URL, generate sessionId, start scraping
+}
+
+// Utility functions - окремий файл
+export function updateSessionStatus(sessionId: string, update: Partial<ProgressStatus>) {
+  // Update in-memory session storage
+}
+
+// Path utilities - reliable path resolution  
+export function getScraperPath(): string {
+  return path.join(getProjectRoot(), 'dist', 'index.js');
+}
+```
+
+**Результат**: 
+- ✅ Form submission працює повністю
+- ✅ Real-time progress tracking замість симуляції  
+- ✅ Spawn scraper процеси запускаються успішно
+- ✅ RAG індексування автоматично стартує після scraping
+- ✅ Demo сторінка `/demo/[sessionId]` створюється та доступна
+- ✅ Build процес (`npm run build`) працює без помилок
+- ✅ Development server стабільно працює
+
+**Тестування**: 
+```bash
+# Успішний тест
+curl -X POST http://localhost:3000/api/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://docs.astro.build/en/getting-started/"}'
+
+# Відповідь:
+{
+  "success": true,
+  "sessionId": "1748685222923-gstarted", 
+  "collectionName": "astro-test",
+  "message": "Scraping process started"
+}
+
+# Progress tracking:
+curl http://localhost:3000/api/progress/1748685222923-gstarted
+{
+  "status": "scraping",
+  "progress": 40,
+  "message": "Знайшли сторінки для скрапінгу..."
+}
+```
+
+**Уроки**:
+- Next.js API routes мають строгі правила експортів (тільки HTTP методи)
+- Path resolution в Next.js development потребує абсолютних шляхів
+- Utility функції треба виносити в lib/ директорії
+- In-memory storage з Map підходить для MVP, але для production треба Redis/Database
+- Polling для progress tracking простіше за WebSockets для початку
+
+**Статус**: ✅ ПОВНІСТЮ ВИРІШЕНО - Форма активації тріалу тепер працює end-to-end
+
+## Проблема: Multi-Collection Documentation System
+**Дата вирішення:** 31 травня 2025  
+**Складність:** ⭐⭐⭐⭐⭐ (Висока)
+
+### **Симптоми проблеми:**
+- Всі документації змішувалися в одну ChromaDB колекцію `doc-scrapper-docs`
+- Неможливо було фільтрувати AI відповіді по конкретному проекту
+- Користувач не міг вибрати, з якої документації отримувати відповіді
+- RAG система не могла розрізняти контекст різних проектів
+
+### **Діагностика та рішення:**
+
+**1. Backend Architecture Changes:**
+```typescript
+// ChromaVectorStore.ts - Dynamic collection switching
+async switchCollection(collectionName: string): Promise<void>
+async listCollections(): Promise<Array<{name: string, count: number}>>
+
+// RAG Pipeline - Collection-aware queries  
+constructor(collectionName?: string)
+async switchCollection(collectionName: string): Promise<void>
+
+// RAG Server - New endpoints
+GET /collections - List all available collections
+POST /switch-collection - Switch active collection
+POST /query - Support collectionName parameter
+```
+
+**2. Frontend UI Components:**
+```typescript
+// CollectionSelector.tsx - Expandable collection picker with grouping
+interface CollectionsData {
+  collections: Collection[];
+  groupedCollections: Record<string, Collection[]>;
+  currentCollection: string;
+}
+
+// ChatInterface.tsx - Collection-aware chat
+interface ChatInterfaceProps {
+  selectedCollection?: string;
+}
+
+// DemoClientPage.tsx - State management between components
+const [selectedCollection, setSelectedCollection] = useState<string>('');
+```
+
+**3. Collection Grouping Logic:**
+```javascript
+// Automatic grouping by project name (first part before hyphen)
+"ai-sdk-dev-docs" → group "ai"
+"astro-test" → group "astro"  
+"doc-scrapper-docs" → group "doc"
+```
+
+### **Ключові технічні рішення:**
+
+1. **Dynamic Collection Management:** ChromaDB client тепер може перемикатися між колекціями без перезапуску
+2. **State Synchronization:** Frontend та Backend синхронізують поточну активну колекцію
+3. **Graceful Fallback:** Якщо колекція не існує, система створює її автоматично
+4. **API Design:** REST endpoints дозволяють керувати колекціями програмно
+
+### **Тестовані сценарії:**
+```bash
+# Collection listing
+curl http://localhost:8001/collections | jq .
+
+# Query specific collection  
+curl -X POST http://localhost:8001/query \
+  -d '{"message":"How to use AI SDK?", "collectionName":"ai-sdk-dev-docs"}'
+
+curl -X POST http://localhost:8001/query \
+  -d '{"message":"Як почати з Astro?", "collectionName":"astro-test"}'
+
+# Web API integration
+curl -X POST http://localhost:3000/api/chat \
+  -d '{"message":"test", "collectionName":"ai-sdk-dev-docs"}'
+```
+
+### **Результат:**
+✅ **Повністю функціональна multi-collection система**
+- 3 активні колекції: ai-sdk-dev-docs (6358), astro-test (6216), doc-scrapper-docs (3178)
+- UI для вибору колекцій з групуванням по проектах
+- Contextual AI responses з правильних документацій
+- Smooth UX з real-time collection switching
+
+### **Уроки на майбутнє:**
+- ChromaDB collection management потребує embeddingFunction при кожному getCollection()
+- Frontend state management критично важливий для UX
+- API design має підтримувати як required, так і optional parameters
+- TypeScript типізація допомагає уникнути runtime помилок з collection names
+
+---
+
+## Проблема: Next.js 15 Server/Client Component Architecture
+**Дата вирішення:** 30 травня 2025  
+**Складність:** ⭐⭐⭐⭐ (Висока)
+
+### **Симптоми проблеми:**
+```
+Error: Event handlers cannot be passed to Client Component props.
+<button onClick={function onClick}>
+```
+
+### **Діагностика:**
+- Next.js 15 має строгіше розділення Server та Client Components
+- Server Components не можуть передавати event handlers як props
+- Інтерактивні елементи (buttons, forms, state) мають бути Client Components
+
+### **Рішення:**
+1. **Створено окремі Client Components:**
+   - `ChatInterface.tsx` - для chat functionality
+   - `TrialBar.tsx` - для trial information з upgrade button  
+   - `DemoClientPage.tsx` - для state management
+
+2. **Server Components залишились для:**
+   - `demo/[id]/page.tsx` - основна сторінка з SSR
+   - Layout компоненти без інтерактивності
+
+3. **Правильна архітектура:**
+```typescript
+// Server Component (page.tsx)
+export default async function DemoPage({ params }: DemoPageProps) {
+  const { id: sessionId } = await params;
+  return <DemoClientPage sessionId={sessionId} />;
+}
+
+// Client Component (DemoClientPage.tsx)  
+"use client";
+export function DemoClientPage({ sessionId }: Props) {
+  const [state, setState] = useState();
+  return <ChatInterface onEvent={handleEvent} />;
+}
+```
+
+### **Результат:**
+- ✅ Build проходить без помилок
+- ✅ Інтерактивні елементи працюють коректно
+- ✅ Server-side rendering зберігається для SEO
+- ✅ State management працює між компонентами
+
+---
+
+## Проблема: Bitcoin Core Integration та ChromaDB Compatibility
+**Дата вирішення:** 29 травня 2025  
+**Складність:** ⭐⭐⭐ (Середня)
+
+### **Симптоми проблеми:**
+- Python ChromaDB сервер не запускався з Node.js додатком
+- Конфлікти dependencies між Python та Node.js environment
+- Складності з debugging через multiple runtime environments
+
+### **Діагностика:**
+- ChromaDB Python server потребував окремого Python environment
+- Node.js RAG server не міг підключитися до ChromaDB
+- Process management був надто складний для development
+
+### **Рішення:**
+1. **Перемикання на ChromaDB JavaScript Client:**
+```typescript
+import { ChromaClient, OpenAIEmbeddingFunction } from 'chromadb';
+
+const client = new ChromaClient({
+  path: 'http://localhost:8000'
+});
+```
+
+2. **Створення Universal Restart Scripts:**
+```bash
+# restart.sh - автоматичний запуск всіх сервісів
+#!/bin/bash
+# Kill all processes on ports 3000, 8000, 8001
+# Build TypeScript projects  
+# Start ChromaDB, RAG server, Web app
+```
+
+3. **Process Management:**
+- ChromaDB server запускається як окремий процес
+- RAG API server підключається як client
+- Web App працює незалежно з API calls
+
+### **Результат:**
+- ✅ Стабільна робота всіх 3 сервісів
+- ✅ Простий restart з однієї команди: `npm run restart`
+- ✅ Proper error handling та logging
+- ✅ Development workflow значно покращився
