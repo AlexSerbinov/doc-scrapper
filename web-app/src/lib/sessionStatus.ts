@@ -35,6 +35,7 @@ interface ProgressStatus {
     
     // Timing
     startTime?: string; // ISO string
+    sessionStartTime?: number; // ⭐ NEW: Global session start timestamp for consistent timing
     elapsedTime?: number; // seconds
     
     // Configuration

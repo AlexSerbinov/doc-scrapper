@@ -147,11 +147,15 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
     console.log(`[${sessionId}] Collection: ${collectionName}`);
     console.log(`[${sessionId}] Output: ${outputPath}`);
 
+    // ⭐ GLOBAL SESSION START TIME - будемо рахувати від початку сесії
+    const sessionStartTime = Date.now();
+
     updateSessionStatus(sessionId, {
       status: 'starting',
       progress: 20,
       message: 'Запускаємо scraper процес...',
       statistics: {
+        sessionStartTime, // ⭐ NEW: зберігаємо час початку сесії
         elapsedTime: 0
       }
     });
@@ -182,17 +186,16 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
       stdio: 'pipe'
     });
 
-    const processStartTime = Date.now();
-
     // Enhanced stdout parsing for detailed statistics ⭐ NEW
     scraperChild.stdout?.on('data', (data) => {
       const output = data.toString();
       console.log(`[${sessionId}] Scraper stdout:`, output.trim());
       
-      const elapsedTime = (Date.now() - processStartTime) / 1000;
+      // ⭐ FIXED: Use global session time instead of process time
+      const globalElapsedTime = (Date.now() - sessionStartTime) / 1000;
       
       // Parse different types of scraper output
-      parseScraperOutput(sessionId, output, elapsedTime);
+      parseScraperOutput(sessionId, output, globalElapsedTime);
     });
 
     scraperChild.stderr?.on('data', (data) => {
@@ -214,41 +217,30 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
     });
 
     scraperChild.on('close', (code) => {
-      const elapsedTime = (Date.now() - processStartTime) / 1000;
+      // ⭐ FIXED: Use global session time
+      const globalElapsedTime = (Date.now() - sessionStartTime) / 1000;
       
       if (code === 0) {
-        console.log(`[${sessionId}] ✅ Scraping completed successfully in ${elapsedTime.toFixed(1)}s`);
+        console.log(`[${sessionId}] ✅ Scraping completed successfully in ${globalElapsedTime.toFixed(1)}s`);
         
-        // ⭐ IMPROVED: Always ensure proper completion status regardless of final parsing
+        // ⭐ IMPROVED: Ensure final scraping stats are consistent
+        const currentStatus = getSessionStatus(sessionId);
+        const stats = currentStatus?.statistics || {};
+        
+        // Force final update to ensure consistency
         updateSessionStatus(sessionId, {
           status: 'scraping',
           progress: 74, // Final scraping progress before indexing
           message: 'Скрапінг завершено успішно! Переходимо до індексації...',
           statistics: {
-            // ⭐ FIXED: Update URLs to show completion regardless of last progress update
-            urlsProcessed: undefined, // Will be preserved from last update or set by completion
-            urlsTotal: undefined, // Will be preserved from last update or set by completion  
-            elapsedTime
+            ...stats,
+            // ⭐ FIXED: Ensure consistent final counts
+            urlsProcessed: stats.urlsTotal || stats.successfulPages || stats.urlsProcessed,
+            elapsedTime: globalElapsedTime // ⭐ Global time
           }
         });
         
-        // ⭐ NEW: Additional update to ensure stats are properly shown
-        setTimeout(() => {
-          // Get current status to preserve existing stats
-          const currentStatus = getSessionStatus(sessionId);
-          const stats = currentStatus?.statistics || {};
-          
-          updateSessionStatus(sessionId, {
-            statistics: {
-              ...stats,
-              // ⭐ FIXED: Ensure final counts are properly displayed
-              urlsProcessed: stats.urlsTotal || stats.urlsProcessed || stats.successfulPages,
-              elapsedTime
-            }
-          });
-        }, 100);
-        
-        // Start RAG indexing
+        // Start RAG indexing with session time context
         setTimeout(() => {
           updateSessionStatus(sessionId, {
             status: 'indexing',
@@ -256,11 +248,11 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
             progress: 75,
             message: 'Створюємо AI індекс для швидкого пошуку...',
             statistics: {
-              elapsedTime
+              elapsedTime: globalElapsedTime // ⭐ Continue global time
             }
           });
 
-          startRAGIndexing(sessionId, outputPath, collectionName, ragIndexPath, projectRoot);
+          startRAGIndexing(sessionId, outputPath, collectionName, ragIndexPath, projectRoot, sessionStartTime);
         }, 500); // Small delay to ensure UI updates
         
       } else {
@@ -271,7 +263,7 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
           message: 'Помилка під час скрапінгу документації',
           error: `Scraper failed with exit code ${code}`,
           statistics: {
-            elapsedTime
+            elapsedTime: globalElapsedTime // ⭐ Global time
           }
         });
       }
@@ -305,7 +297,7 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
             message: `Знайшли ${stats.urlsFound} сторінок для скрапінгу...`,
             statistics: {
               urlsFound: stats.urlsFound,
-              urlsTotal: stats.urlsTotal,
+              urlsTotal: stats.urlsTotal || stats.urlsFound, // ⭐ FIXED: Ensure consistent totals
               concurrency: stats.concurrency,
               rateLimitMs: stats.rateLimitMs,
               elapsedTime
@@ -336,7 +328,7 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
             message: `Скрапимо контент: ${progress.current}/${progress.total} сторінок (${progress.percentage}%)`,
             statistics: {
               urlsProcessed: progress.current,
-              urlsTotal: progress.total,
+              urlsTotal: progress.total, // ⭐ FIXED: Always use the same total from progress
               currentUrl: progress.currentUrl,
               scrapingRate: Number(scrapingRate.toFixed(2)),
               estimatedTimeRemaining: Math.round(estimatedTimeRemaining),
@@ -408,7 +400,7 @@ function parseScraperErrors(sessionId: string, output: string) {
   }
 }
 
-function startRAGIndexing(sessionId: string, outputPath: string, collectionName: string, ragIndexPath: string, projectRoot: string): void {
+function startRAGIndexing(sessionId: string, outputPath: string, collectionName: string, ragIndexPath: string, projectRoot: string, sessionStartTime: number): void {
   const ragChild = spawn('node', [ragIndexPath, outputPath, '--verbose'], {
     cwd: projectRoot,
     stdio: 'pipe',
@@ -418,15 +410,14 @@ function startRAGIndexing(sessionId: string, outputPath: string, collectionName:
     }
   });
 
-  const indexingStartTime = Date.now();
-
   // Enhanced RAG output parsing ⭐ NEW
   ragChild.stdout?.on('data', (data) => {
     const output = data.toString();
     console.log(`[${sessionId}] RAG stdout:`, output.trim());
     
-    const elapsedTime = (Date.now() - indexingStartTime) / 1000;
-    parseRAGOutput(sessionId, output, elapsedTime);
+    // ⭐ FIXED: Use global session time instead of indexing start time
+    const globalElapsedTime = (Date.now() - sessionStartTime) / 1000;
+    parseRAGOutput(sessionId, output, globalElapsedTime);
   });
 
   ragChild.stderr?.on('data', (data) => {
@@ -435,19 +426,23 @@ function startRAGIndexing(sessionId: string, outputPath: string, collectionName:
 
   ragChild.on('error', (error) => {
     console.error(`[${sessionId}] RAG indexing error:`, error);
+    const globalElapsedTime = (Date.now() - sessionStartTime) / 1000;
     updateSessionStatus(sessionId, {
       status: 'error',
       progress: 80,
       message: 'Помилка під час створення AI індексу',
-      error: error.message
+      error: error.message,
+      statistics: {
+        elapsedTime: globalElapsedTime // ⭐ Global time
+      }
     });
   });
 
   ragChild.on('close', (code) => {
-    const totalElapsedTime = (Date.now() - indexingStartTime) / 1000;
+    const globalElapsedTime = (Date.now() - sessionStartTime) / 1000;
     
     if (code === 0) {
-      console.log(`[${sessionId}] ✅ RAG indexing completed successfully in ${totalElapsedTime.toFixed(1)}s`);
+      console.log(`[${sessionId}] ✅ RAG indexing completed successfully in ${globalElapsedTime.toFixed(1)}s`);
       
       const chatUrl = `/demo/${sessionId}`;
       updateSessionStatus(sessionId, {
@@ -457,7 +452,7 @@ function startRAGIndexing(sessionId: string, outputPath: string, collectionName:
         message: 'AI-помічник готовий до роботи!',
         chatUrl,
         statistics: {
-          elapsedTime: totalElapsedTime
+          elapsedTime: globalElapsedTime // ⭐ Final global time
         }
       });
     } else {
@@ -468,7 +463,7 @@ function startRAGIndexing(sessionId: string, outputPath: string, collectionName:
         message: 'Помилка під час індексації в AI базу даних',
         error: `RAG indexing failed with exit code ${code}`,
         statistics: {
-          elapsedTime: totalElapsedTime
+          elapsedTime: globalElapsedTime // ⭐ Global time
         }
       });
     }
@@ -516,6 +511,11 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
               if (chunksProcessed > 0 && chunksTotal > 0) {
                 const chunkPercent = Math.round((chunksProcessed / chunksTotal) * 100);
                 message = `Індексуємо chunks: ${chunksProcessed}/${chunksTotal} (${chunkPercent}%)`;
+                
+                // ⭐ IMPROVED: Ensure progress goes to 99% when chunks are nearly complete
+                if (chunkPercent >= 95) {
+                  progress = 99;
+                }
               }
               break;
             case 'complete':
@@ -533,7 +533,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
               // ⭐ NEW: Add chunks statistics
               embeddingsProcessed: chunksProcessed || undefined,
               embeddingsTotal: chunksTotal || undefined,
-              elapsedTime
+              elapsedTime // ⭐ Global session time
             }
           });
         }
@@ -553,7 +553,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
             message: `Проіндексували ${completionData.chunksIndexed} блоків у векторній базі`,
             statistics: {
               embeddingsGenerated: completionData.chunksIndexed,
-              elapsedTime
+              elapsedTime // ⭐ Global session time
             }
           });
         }
@@ -573,7 +573,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
           statistics: {
             documentsTotal,
             documentsProcessed: 0,
-            elapsedTime
+            elapsedTime // ⭐ Global session time
           }
         });
       }
@@ -587,7 +587,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
         updateSessionStatus(sessionId, {
           statistics: {
             chunksCreated,
-            elapsedTime
+            elapsedTime // ⭐ Global session time
           }
         });
       }
@@ -601,7 +601,7 @@ function parseRAGOutput(sessionId: string, output: string, elapsedTime: number) 
         updateSessionStatus(sessionId, {
           statistics: {
             averageChunkSize,
-            elapsedTime
+            elapsedTime // ⭐ Global session time
           }
         });
       }
