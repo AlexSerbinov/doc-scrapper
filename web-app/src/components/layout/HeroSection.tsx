@@ -1,8 +1,8 @@
 "use client";
 
+import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
-import { ProcessingModal } from "./ProcessingModal";
+import { EnhancedProcessingModal } from "./EnhancedProcessingModal";
 
 export function HeroSection() {
   const [url, setUrl] = useState("");
@@ -176,7 +176,7 @@ export function HeroSection() {
       </section>
 
       {/* Processing Modal */}
-      <ProcessingModal
+      <EnhancedProcessingModal
         isOpen={showProcessingModal}
         onClose={handleModalClose}
         url={submittedUrl}

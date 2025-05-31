@@ -219,18 +219,31 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
       if (code === 0) {
         console.log(`[${sessionId}] ✅ Scraping completed successfully in ${elapsedTime.toFixed(1)}s`);
         
-        // Start RAG indexing
+        // ⭐ IMPROVED: Always ensure proper completion status regardless of final parsing
         updateSessionStatus(sessionId, {
-          status: 'indexing',
-          currentStep: 'indexing',
-          progress: 75,
-          message: 'Створюємо AI індекс для швидкого пошуку...',
+          status: 'scraping',
+          progress: 74, // Final scraping progress before indexing
+          message: 'Скрапінг завершено успішно! Переходимо до індексації...',
           statistics: {
             elapsedTime
           }
         });
+        
+        // Start RAG indexing
+        setTimeout(() => {
+          updateSessionStatus(sessionId, {
+            status: 'indexing',
+            currentStep: 'indexing',
+            progress: 75,
+            message: 'Створюємо AI індекс для швидкого пошуку...',
+            statistics: {
+              elapsedTime
+            }
+          });
 
-        startRAGIndexing(sessionId, outputPath, collectionName, ragIndexPath, projectRoot);
+          startRAGIndexing(sessionId, outputPath, collectionName, ragIndexPath, projectRoot);
+        }, 500); // Small delay to ensure UI updates
+        
       } else {
         console.error(`[${sessionId}] ❌ Scraping failed with code ${code}`);
         updateSessionStatus(sessionId, {
@@ -295,9 +308,12 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
           const scrapingRate = elapsedTime > 0 ? progress.current / elapsedTime : 0;
           const estimatedTimeRemaining = scrapingRate > 0 ? (progress.total - progress.current) / scrapingRate : 0;
           
+          // ⭐ IMPROVED: Ensure progress smoothly scales and doesn't get stuck
+          const finalProgress = Math.min(25 + (progress.percentage * 0.48), 73); // Scale to 25-73% range, cap at 73
+          
           updateSessionStatus(sessionId, {
             status: 'scraping',
-            progress: 25 + (progress.percentage * 0.45), // Scale to 25-70% range
+            progress: finalProgress,
             message: `Скрапимо контент: ${progress.current}/${progress.total} сторінок (${progress.percentage}%)`,
             statistics: {
               urlsProcessed: progress.current,
