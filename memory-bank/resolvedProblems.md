@@ -713,3 +713,51 @@ import { EnhancedProcessingModal } from "./EnhancedProcessingModal";
 - ✅ **Production ready** - всі баги виправлені, система стабільна
 
 **Статус:** ✅ ВИРІШЕНО
+
+## Проблема: TypeScript помилка з Filter function в markdownFormatter.ts (31.05.2025) ⭐ НОВИЙ
+
+**Симптоми**:
+- TypeScript compilation помилка: `Type '(node: HTMLElement) => boolean | null' is not assignable to type 'Filter'`
+- Build failing при `npm run build` або `npm run restart`
+- Помилка вказує на src/formatters/markdownFormatter.ts:58
+
+**Діагностика**:
+- Проблема в TurndownService custom rules
+- Filter function у `highlightedCodeBlock` правилі може повертати `null` 
+- TypeScript типи очікують тільки `boolean` return type
+- Специфічно: `node.firstChild && node.firstChild.nodeName` може повернути `null`
+
+**Рішення**:
+Замінено implicit truthy check на explicit null check:
+```typescript
+// БУЛО ❌
+filter: function (node) {
+  return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
+}
+
+// СТАЛО ✅  
+filter: function (node) {
+  return node.nodeName === 'PRE' && 
+         node.firstChild !== null && 
+         node.firstChild.nodeName === 'CODE';
+}
+```
+
+**Пояснення**:
+- `node.firstChild && node.firstChild.nodeName` може повернути `null | string`
+- `node.firstChild !== null && node.firstChild.nodeName` завжди повертає `boolean`
+- TypeScript строго перевіряє типи TurndownService Filter functions
+
+**Запобігання**:
+- Завжди використовувати explicit null checks у filter functions
+- Тестувати TypeScript compilation після змін у TurndownService rules
+- Перевіряти типи return values у custom rules
+
+**Статус**: ✅ ВИРІШЕНО
+
+**Результат**: 
+- `npm run build` ✅ успішний
+- `npm run restart` ✅ працює
+- Всі сервіси запущені (ChromaDB:8000, RAG API:8001, Web App:3000)
+
+---
