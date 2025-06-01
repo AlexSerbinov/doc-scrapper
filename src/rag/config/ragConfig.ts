@@ -36,7 +36,7 @@ export class RAGConfigService {
       chunking: {
         chunkSize: parseInt(process.env.CHUNK_SIZE || '2000'),
         chunkOverlap: parseInt(process.env.CHUNK_OVERLAP || '200'),
-        strategy: (process.env.CHUNKING_STRATEGY as 'recursive' | 'markdown' | 'sentence' | 'universal') || 'universal',
+        strategy: (process.env.CHUNKING_STRATEGY as 'recursive' | 'markdown' | 'sentence' | 'universal') || 'markdown',
       },
       vectorStore: {
         provider: (process.env.VECTOR_DB as 'chroma' | 'pinecone' | 'faiss') || 'chroma',

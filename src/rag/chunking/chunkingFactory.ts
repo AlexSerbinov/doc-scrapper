@@ -11,25 +11,25 @@ export class ChunkingStrategyFactory {
     const config = RAGConfigService.getInstance().config.chunking;
     
     switch (config.strategy) {
-      case 'universal':
-        console.log('🔧 Using Universal chunking strategy (recommended for mixed content)');
-        return new UniversalChunkingStrategy();
-      
       case 'markdown':
-        console.log('🔧 Using Markdown chunking strategy (legacy)');
+        console.log('🎯 Using Enhanced Semantic Markdown chunking (header-based sections)');
         return new MarkdownChunkingStrategy();
       
+      case 'universal':
+        console.log('🔧 Using Universal chunking strategy (legacy token-based)');
+        return new UniversalChunkingStrategy();
+      
       case 'sentence':
-        console.log('⚠️ Sentence chunking not recommended for code documentation');
-        return new MarkdownChunkingStrategy(); // Fallback
+        console.log('⚠️ Sentence chunking not recommended, using Enhanced Semantic');
+        return new MarkdownChunkingStrategy(); // Fallback to better strategy
       
       case 'recursive':
-        console.log('⚠️ Recursive chunking not implemented, using Universal');
-        return new UniversalChunkingStrategy(); // Fallback
+        console.log('⚠️ Recursive chunking not implemented, using Enhanced Semantic');
+        return new MarkdownChunkingStrategy(); // Fallback to better strategy
       
       default:
-        console.log('🔧 Using Universal chunking strategy (default)');
-        return new UniversalChunkingStrategy();
+        console.log('🎯 Using Enhanced Semantic Markdown chunking (default - header-based)');
+        return new MarkdownChunkingStrategy(); // NEW DEFAULT ⭐
     }
   }
 
@@ -37,7 +37,15 @@ export class ChunkingStrategyFactory {
    * Auto-detect best strategy based on content analysis
    */
   static detectBestStrategy(documentPaths: string[]): ChunkingStrategy {
-    // Analyze file types and content patterns
+    // For documentation, semantic chunking by headers is almost always better
+    const hasMarkdownDocs = documentPaths.some(path => path.endsWith('.md'));
+    
+    if (hasMarkdownDocs) {
+      console.log('🎯 Auto-detected: Enhanced Semantic strategy (Markdown documentation detected)');
+      return new MarkdownChunkingStrategy();
+    }
+    
+    // Only use Universal for truly mixed content (not just code docs)
     const hasCode = documentPaths.some(path => 
       path.includes('code') || 
       path.includes('api') || 
@@ -46,11 +54,11 @@ export class ChunkingStrategyFactory {
     
     const hasMultipleFormats = this.detectMultipleFormats(documentPaths);
     
-    if (hasCode || hasMultipleFormats) {
-      console.log('🎯 Auto-detected: Universal strategy (code/mixed content detected)');
+    if (hasCode && hasMultipleFormats) {
+      console.log('🔧 Auto-detected: Universal strategy (complex mixed content)');
       return new UniversalChunkingStrategy();
     } else {
-      console.log('🎯 Auto-detected: Markdown strategy (simple text content)');
+      console.log('🎯 Auto-detected: Enhanced Semantic strategy (default for documentation)');
       return new MarkdownChunkingStrategy();
     }
   }

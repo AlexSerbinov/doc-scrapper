@@ -4,11 +4,21 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs-extra';
 import path from 'path';
 
+/**
+ * Enhanced Semantic Markdown Chunking Strategy
+ * 
+ * Розділяє документи на семантичні блоки по заголовкам Markdown.
+ * Кожен chunk відповідає одній секції документації з її заголовком та контентом.
+ * Зберігає ієрархію заголовків та контекст для кращого пошуку.
+ */
 export class MarkdownChunkingStrategy implements ChunkingStrategy {
   private config: ChunkingConfig;
+  private maxChunkTokens: number = 1000; // Максимальний розмір chunk в токенах
 
   constructor() {
     this.config = RAGConfigService.getInstance().config.chunking;
+    // Використовуємо більший ліміт для семантичних блоків
+    this.maxChunkTokens = Math.max(this.config.chunkSize, 1000);
   }
 
   async chunkDocuments(documents: Document[]): Promise<DocumentChunk[]> {
@@ -29,36 +39,170 @@ export class MarkdownChunkingStrategy implements ChunkingStrategy {
     // Parse frontmatter and content
     const { frontmatter, mainContent } = this.parseFrontmatter(content);
     
-    // Split by headers to create logical sections
-    const sections = this.splitByHeaders(mainContent);
+    // Create semantic sections based on header hierarchy
+    const semanticSections = this.createSemanticSections(mainContent);
     
-    // Further split large sections into smaller chunks
+    // Convert sections to chunks
     let chunkIndex = 0;
-    for (const section of sections) {
-      const sectionChunks = this.splitLargeSection(section);
+    for (const section of semanticSections) {
+      // Skip very small sections (less than 50 characters)
+      if (section.content.trim().length < 50) continue;
       
-      for (const chunkContent of sectionChunks) {
-        if (chunkContent.trim().length < 50) continue; // Skip very small chunks
-        
-        const chunk: DocumentChunk = {
-          id: uuidv4(),
-          content: chunkContent.trim(),
-          metadata: {
-            sourceUrl: metadata.url,
-            title: frontmatter.title || metadata.title,
-            section: this.extractSectionTitle(chunkContent),
-            filePath: metadata.filePath,
-            chunkIndex: chunkIndex++,
-            tokenCount: this.estimateTokenCount(chunkContent),
-            createdAt: new Date(),
-          },
-        };
-        
-        chunks.push(chunk);
+      const tokenCount = this.estimateTokenCount(section.content);
+      
+      // If section is too large, try to split it intelligently
+      if (tokenCount > this.maxChunkTokens) {
+        const splitChunks = this.splitLargeSemanticSection(section);
+        for (const splitChunk of splitChunks) {
+          chunks.push(this.createChunk(splitChunk, frontmatter, metadata, chunkIndex++));
+        }
+      } else {
+        chunks.push(this.createChunk(section, frontmatter, metadata, chunkIndex++));
       }
     }
 
     return chunks;
+  }
+
+  private createSemanticSections(content: string): SemanticSection[] {
+    const sections: SemanticSection[] = [];
+    const lines = content.split('\n');
+    
+    let currentSection: SemanticSection | null = null;
+    let headerStack: HeaderInfo[] = []; // Stack для відстеження ієрархії заголовків
+    
+    for (const line of lines) {
+      const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      
+      if (headerMatch) {
+        // Знайшли новий заголовок
+        const level = headerMatch[1].length;
+        const title = headerMatch[2].trim();
+        
+        // Зберігаємо попередню секцію якщо вона існує
+        if (currentSection) {
+          sections.push(currentSection);
+        }
+        
+        // Оновлюємо стек заголовків
+        this.updateHeaderStack(headerStack, { level, title });
+        
+        // Створюємо нову секцію
+        currentSection = {
+          title,
+          level,
+          content: line + '\n',
+          headerPath: this.createHeaderPath(headerStack),
+          tokenCount: 0,
+        };
+      } else {
+        // Додаємо контент до поточної секції
+        if (currentSection) {
+          currentSection.content += line + '\n';
+        } else {
+          // Контент перед першим заголовком - створюємо секцію "Intro"
+          currentSection = {
+            title: 'Introduction',
+            level: 0,
+            content: line + '\n',
+            headerPath: ['Introduction'],
+            tokenCount: 0,
+          };
+        }
+      }
+    }
+    
+    // Додаємо останню секцію
+    if (currentSection) {
+      sections.push(currentSection);
+    }
+    
+    // Оновлюємо підрахунок токенів
+    sections.forEach(section => {
+      section.tokenCount = this.estimateTokenCount(section.content);
+    });
+    
+    return sections.filter(section => section.content.trim().length > 0);
+  }
+
+  private updateHeaderStack(stack: HeaderInfo[], newHeader: HeaderInfo): void {
+    // Видаляємо заголовки того ж рівня або нижчого
+    while (stack.length > 0 && stack[stack.length - 1].level >= newHeader.level) {
+      stack.pop();
+    }
+    
+    // Додаємо новий заголовок
+    stack.push(newHeader);
+  }
+
+  private createHeaderPath(headerStack: HeaderInfo[]): string[] {
+    return headerStack.map(header => header.title);
+  }
+
+  private splitLargeSemanticSection(section: SemanticSection): SemanticSection[] {
+    // Якщо секція дуже велика, пробуємо розділити її по підзаголовкам або параграфам
+    const lines = section.content.split('\n');
+    const chunks: SemanticSection[] = [];
+    
+    let currentChunk = '';
+    let currentTokens = 0;
+    const overlapLines = Math.floor(this.config.chunkOverlap / 20); // Приблизно по 20 символів на рядок
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineTokens = this.estimateTokenCount(line);
+      
+      if (currentTokens + lineTokens > this.maxChunkTokens && currentChunk.length > 0) {
+        // Створюємо chunk і починаємо новий
+        chunks.push({
+          ...section,
+          content: currentChunk.trim(),
+          title: section.title + (chunks.length > 0 ? ` (частина ${chunks.length + 1})` : ''),
+          tokenCount: currentTokens,
+        });
+        
+        // Починаємо новий chunk з overlap
+        const overlapStart = Math.max(0, i - overlapLines);
+        currentChunk = lines.slice(overlapStart, i + 1).join('\n') + '\n';
+        currentTokens = this.estimateTokenCount(currentChunk);
+      } else {
+        currentChunk += line + '\n';
+        currentTokens += lineTokens;
+      }
+    }
+    
+    // Додаємо останній chunk
+    if (currentChunk.trim().length > 0) {
+      chunks.push({
+        ...section,
+        content: currentChunk.trim(),
+        title: section.title + (chunks.length > 0 ? ` (частина ${chunks.length + 1})` : ''),
+        tokenCount: currentTokens,
+      });
+    }
+    
+    return chunks;
+  }
+
+  private createChunk(section: SemanticSection, frontmatter: any, metadata: any, chunkIndex: number): DocumentChunk {
+    return {
+      id: uuidv4(),
+      content: section.content.trim(),
+      metadata: {
+        sourceUrl: metadata.url,
+        title: frontmatter.title || metadata.title,
+        section: section.title,
+        headerPath: section.headerPath.join(' > '),
+        headerLevel: section.level,
+        filePath: metadata.filePath,
+        chunkIndex,
+        tokenCount: section.tokenCount,
+        createdAt: new Date(),
+        // Додаткові метадані для кращого контексту
+        documentType: 'markdown',
+        semanticType: 'section',
+      },
+    };
   }
 
   private parseFrontmatter(content: string): { frontmatter: any; mainContent: string } {
@@ -90,127 +234,24 @@ export class MarkdownChunkingStrategy implements ChunkingStrategy {
     }
   }
 
-  private splitByHeaders(content: string): string[] {
-    // Split by markdown headers (# ## ### etc)
-    const headerRegex = /^(#{1,6})\s+(.+)$/gm;
-    const sections: string[] = [];
-    let lastIndex = 0;
-    let match;
-
-    const matches: Array<{ index: number; level: number; title: string }> = [];
-    
-    while ((match = headerRegex.exec(content)) !== null) {
-      matches.push({
-        index: match.index,
-        level: match[1].length,
-        title: match[2],
-      });
-    }
-
-    // If no headers found, treat entire content as one section
-    if (matches.length === 0) {
-      return [content];
-    }
-
-    // Create sections based on headers
-    for (let i = 0; i < matches.length; i++) {
-      const currentMatch = matches[i];
-      const nextMatch = matches[i + 1];
-      
-      const sectionStart = lastIndex;
-      const sectionEnd = nextMatch ? nextMatch.index : content.length;
-      
-      const section = content.substring(sectionStart, sectionEnd).trim();
-      if (section.length > 0) {
-        sections.push(section);
-      }
-      
-      lastIndex = currentMatch.index;
-    }
-
-    // Add final section if exists
-    const finalSection = content.substring(lastIndex).trim();
-    if (finalSection.length > 0 && !sections.includes(finalSection)) {
-      sections.push(finalSection);
-    }
-
-    return sections.filter(section => section.length > 0);
-  }
-
-  private splitLargeSection(section: string): string[] {
-    const { chunkSize, chunkOverlap } = this.config;
-    
-    // If section is small enough, return as is
-    if (this.estimateTokenCount(section) <= chunkSize) {
-      return [section];
-    }
-
-    const chunks: string[] = [];
-    const sentences = this.splitIntoSentences(section);
-    
-    let currentChunk = '';
-    let currentTokens = 0;
-
-    for (const sentence of sentences) {
-      const sentenceTokens = this.estimateTokenCount(sentence);
-      
-      // If adding this sentence would exceed chunk size, save current chunk
-      if (currentTokens + sentenceTokens > chunkSize && currentChunk.length > 0) {
-        chunks.push(currentChunk.trim());
-        
-        // Start new chunk with overlap
-        const overlapText = this.getLastSentences(currentChunk, chunkOverlap);
-        currentChunk = overlapText + ' ' + sentence;
-        currentTokens = this.estimateTokenCount(currentChunk);
-      } else {
-        currentChunk += ' ' + sentence;
-        currentTokens += sentenceTokens;
-      }
-    }
-
-    // Add remaining chunk
-    if (currentChunk.trim().length > 0) {
-      chunks.push(currentChunk.trim());
-    }
-
-    return chunks;
-  }
-
-  private splitIntoSentences(text: string): string[] {
-    // Simple sentence splitting - can be improved
-    return text
-      .split(/[.!?]+/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-      .map(s => s + '.');
-  }
-
-  private getLastSentences(text: string, maxTokens: number): string {
-    const sentences = this.splitIntoSentences(text);
-    let result = '';
-    let tokens = 0;
-
-    for (let i = sentences.length - 1; i >= 0; i--) {
-      const sentenceTokens = this.estimateTokenCount(sentences[i]);
-      if (tokens + sentenceTokens > maxTokens) break;
-      
-      result = sentences[i] + ' ' + result;
-      tokens += sentenceTokens;
-    }
-
-    return result.trim();
-  }
-
-  private extractSectionTitle(content: string): string {
-    // Extract the first header from content
-    const headerMatch = content.match(/^(#{1,6})\s+(.+)$/m);
-    return headerMatch ? headerMatch[2] : '';
-  }
-
   private estimateTokenCount(text: string): number {
-    // Rough estimation: 1 token ≈ 4 characters for English text
+    // Покращена оцінка токенів: 1 токен ≈ 4 символи для англійської мови
     return Math.ceil(text.length / 4);
   }
+}
+
+// Helper interfaces
+interface SemanticSection {
+  title: string;
+  level: number;
+  content: string;
+  headerPath: string[];
+  tokenCount: number;
+}
+
+interface HeaderInfo {
+  level: number;
+  title: string;
 }
 
 export class DocumentLoader {

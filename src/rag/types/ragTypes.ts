@@ -15,6 +15,12 @@ export interface ChunkMetadata {
   chunkIndex: number;
   tokenCount: number;
   createdAt: Date;
+  
+  // Semantic chunking метадані ⭐ NEW
+  headerPath?: string;        // Повний шлях заголовків (напр. "Getting Started > Installation > Prerequisites")
+  headerLevel?: number;       // Рівень заголовку (1 для #, 2 для ##, тощо)
+  documentType?: string;      // Тип документу (markdown, html, тощо)
+  semanticType?: string;      // Тип семантичного блоку (section, introduction, example, тощо)
 }
 
 export interface EmbeddingConfig {
