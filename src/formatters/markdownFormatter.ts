@@ -55,15 +55,15 @@ export class MarkdownFormatter implements Formatter {
   private setupCustomRules(): void {
     // Custom rule for code blocks with language detection
     this.turndownService.addRule('highlightedCodeBlock', {
-      filter: function (node) {
-        return node.nodeName === 'PRE' && node.firstChild && node.firstChild.nodeName === 'CODE';
-      },
-      replacement: function (_, node) {
-        const codeNode = node.firstChild as any;
-        const className = codeNode.getAttribute('class') || '';
-        const language = className.match(/language-(\w+)/)?.[1] || '';
-        
-        return '\n\n```' + language + '\n' + codeNode.textContent + '\n```\n\n';
+      filter: 'pre',
+      replacement: function (content, node) {
+        const codeNode = node.querySelector('code');
+        if (codeNode) {
+          const className = codeNode.getAttribute('class') || '';
+          const language = className.match(/language-(\w+)/)?.[1] || '';
+          return '\n\n```' + language + '\n' + codeNode.textContent + '\n```\n\n';
+        }
+        return '\n\n```\n' + content + '\n```\n\n';
       }
     });
 
@@ -72,16 +72,6 @@ export class MarkdownFormatter implements Formatter {
       filter: 'table',
       replacement: function (content) {
         return '\n\n' + content + '\n\n';
-      }
-    });
-
-    // Custom rule for removing unnecessary whitespace
-    this.turndownService.addRule('removeExtraWhitespace', {
-      filter: function (node) {
-        return node.nodeType === 3 && /^\s+$/.test(node.nodeValue || ''); // Text nodes with only whitespace
-      },
-      replacement: function () {
-        return '';
       }
     });
 

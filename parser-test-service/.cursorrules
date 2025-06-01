@@ -1,0 +1,132 @@
+# Cursor Rules - Doc Scrapper Project
+
+## Project Context
+Doc Scrapper - RAG-based documentation assistant with automated web scraping capabilities.
+**Current Critical Issue**: Trial activation form is not connected to backend scraper.
+
+## Architecture Overview
+- **Web App**: Next.js 14 (port 3006) - landing page + chat interface
+- **RAG API**: Express.js (port 8001) - query processing + OpenAI integration
+- **Vector DB**: ChromaDB (port 8000) - document storage + similarity search
+- **CLI Scraper**: TypeScript compiled to /dist/index.js - web scraping + indexing
+
+## Key Project Patterns
+
+### File Structure Conventions
+- `/src/app/` - Next.js App Router pages
+- `/src/components/` - React components with dark theme
+- `/memory-bank/` - Project documentation and context
+- `/dist/` - Compiled CLI scraper code
+
+### Component Patterns
+```typescript
+// All components use dark theme with consistent styling
+const Component = () => {
+  return (
+    <div className="bg-gray-900 text-white">
+      {/* Consistent dark theme throughout */}
+    </div>
+  );
+};
+```
+
+### API Integration Pattern
+```typescript
+// RAG API calls follow this pattern
+const response = await fetch(`${process.env.NEXT_PUBLIC_RAG_API_URL}/api/query`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ query, collection: 'docs' })
+});
+```
+
+## Current Development Focus
+
+### Critical Priority: Form Integration
+The trial activation form in HeroSection.tsx needs to:
+1. Create `/api/scrape` endpoint in Next.js
+2. Spawn CLI scraper as child process
+3. Implement real-time progress tracking
+4. Generate unique collection names from URLs
+
+### Technical Debt
+- No session management for scraping progress
+- Mock ProcessingModal (needs real progress)
+- Missing error handling for scraping failures
+- No collection switching mechanism in RAG API
+
+## Working Components ✅
+- CLI scraper: fully functional, can scrape any documentation
+- RAG API: responding, has 3178 indexed documents
+- ChromaDB: operational, vector search working
+- Chat interface: connected to RAG API, generates AI responses
+- Web UI: beautiful dark theme, responsive design
+
+## Broken Components ❌
+- Trial activation form: only shows mock UI, no backend integration
+- ProcessingModal: fake progress, no real scraping
+- Collection management: no dynamic collection creation
+
+## Environment Variables
+```bash
+# Required for RAG API
+OPENAI_API_KEY=sk-...
+CHROMA_DB_URL=http://localhost:8000
+COLLECTION_NAME=default-docs
+
+# Required for Web App
+NEXT_PUBLIC_RAG_API_URL=http://localhost:8001
+```
+
+## Debugging Commands
+```bash
+# Check if all services are running
+curl http://localhost:8000  # ChromaDB
+curl http://localhost:8001/health  # RAG API
+curl http://localhost:3006  # Web App
+
+# Test CLI scraper manually
+cd .. && node dist/index.js scrape <URL>
+```
+
+## Code Quality Preferences
+- Use TypeScript strict mode
+- Prefer async/await over promises
+- Error handling with try/catch blocks
+- Console.log for debugging (development)
+- Descriptive variable names
+- Comments for complex business logic
+
+## UI/UX Patterns
+- Dark theme consistency (bg-gray-900, text-white)
+- Lucide icons for all iconography
+- Responsive design mobile-first
+- Loading states for async operations
+- Error states with user-friendly messages
+- Success animations and feedback
+
+## Integration Strategy
+**Child Process Approach** for CLI scraper integration:
+```typescript
+const child = spawn('node', [
+  '../dist/index.js', 
+  'scrape', 
+  url,
+  '--collection-name', 
+  collectionName
+]);
+```
+
+## Common Issues
+1. **Port conflicts** - ensure 3006, 8000, 8001 are available
+2. **Environment variables** - verify all required vars are set
+3. **CLI scraper path** - relative path from web app to /dist/index.js
+4. **Collection naming** - ChromaDB requires alphanumeric + hyphens only
+
+## Memory Bank Usage
+- Read memory-bank/ files for complete project context
+- Update activeContext.md for current work focus
+- Add resolved problems to resolvedProblems.md
+- Keep progress.md current with component status
+
+Remember: This project is 85% complete. The main blocker is connecting the beautiful UI to the working backend scraper. 

@@ -1,9 +1,14 @@
 // Main entry point for the doc-scrapper library
 
 // Export main classes for programmatic usage
-export { DocumentationScraper } from './core/documentationScraper.js';
+export { DocumentationScraper, DocumentationScraperOptions } from './core/documentationScraper.js';
 export { DefaultUrlDiscoverer } from './core/urlDiscoverer.js';
+export { EnhancedUrlDiscoverer, EnhancedDiscoveryOptions } from './core/enhancedUrlDiscoverer.js';
+export { JavaScriptSiteDiscoverer } from './strategies/JavaScriptSiteDiscoverer.js';
+export { SiteTypeDetector, SiteAnalysis } from './strategies/SiteTypeDetector.js';
 export { DefaultContentExtractor } from './extractors/contentExtractor.js';
+export { EnhancedContentExtractor, EnhancedExtractionOptions } from './extractors/enhancedContentExtractor.js';
+export { JavaScriptContentExtractor } from './strategies/JavaScriptContentExtractor.js';
 export { MarkdownFormatter } from './formatters/markdownFormatter.js';
 export { FileStorageAdapter } from './storage/fileStorage.js';
 export { HttpClient } from './utils/httpClient.js';

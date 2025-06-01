@@ -57,7 +57,7 @@ app.get('/health', async (_req, res) => {
 // Scrape endpoint - triggers the CLI scraper
 app.post('/scrape', async (req, res) => {
   try {
-    const { url, collectionName, format = 'markdown' } = req.body;
+    const { url, collectionName, format = 'markdown', maxPages = 500 } = req.body;
     
     if (!url) {
       return res.status(400).json({
@@ -73,10 +73,11 @@ app.post('/scrape', async (req, res) => {
     
     console.log(`🔄 Starting scrape for: ${url}`);
     console.log(`📁 Collection: ${collectionName}`);
+    console.log(`📄 Max pages: ${maxPages}`);
     
     // Get project root (relative to compiled dist location)
     const projectRoot = process.cwd();
-    const scraperPath = path.join(projectRoot, 'dist', 'index.js');
+    const scraperPath = path.join(projectRoot, 'dist', 'cli', 'index.js');
     const outputDir = path.join(projectRoot, 'scraped-docs', collectionName);
     
     // Run scraper as child process
@@ -85,6 +86,8 @@ app.post('/scrape', async (req, res) => {
       url,
       '--output', outputDir,
       '--format', format,
+      '--jina-mode',
+      '--max-pages', maxPages.toString(),
       '--verbose'
     ], {
       cwd: projectRoot,

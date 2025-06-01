@@ -38,6 +38,22 @@ export interface PageMetadata {
   tags?: string[];
   breadcrumbs?: string[];
   section?: string;
+  // Enhanced extraction fields
+  title?: string;
+  content?: string;
+  error?: string;
+  extractedAt?: string;
+  contentLength?: number;
+  framework?: string;
+  canonicalUrl?: string;
+  keywords?: string[];
+  fallback?: boolean;
+  extractionMethod?: string;
+  wordCount?: number;
+  headers?: string[];
+  siteName?: string;
+  publishedTime?: string;
+  readingTime?: number;
 }
 
 export interface ScrapingResult {
@@ -119,4 +135,37 @@ export interface ScrapingProgress {
   currentUrl?: string;
   errors: number;
   startTime: Date;
+}
+
+// Enhanced extraction options
+export interface ExtractionOptions {
+  forceJavaScript?: boolean;
+  forceStatic?: boolean;
+  useJinaReader?: boolean;
+  jsTimeout?: number;
+  waitStrategy?: 'networkidle' | 'domcontent' | 'load';
+  waitSelector?: string;
+}
+
+export interface DiscoveryOptions {
+  forceJavaScript?: boolean;
+  forceStatic?: boolean;
+  jsTimeout?: number;
+  waitStrategy?: 'networkidle' | 'domcontent' | 'load';
+  waitSelector?: string;
+}
+
+export interface DocumentationScraperOptions {
+  discoveryOptions?: DiscoveryOptions;
+  extractionOptions?: ExtractionOptions;
+  httpOptions?: Partial<HttpClientOptions>;
+}
+
+// Comparison results
+export interface JinaExtractionComparison {
+  staticResult: ExtractedContent;
+  javascriptResult: ExtractedContent;
+  jinaResult: ExtractedContent;
+  recommendation: 'Static' | 'JavaScript' | 'Jina Reader';
+  reason: string;
 } 

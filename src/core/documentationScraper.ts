@@ -1,38 +1,43 @@
-import cliProgress from 'cli-progress';
-import { 
-  Scraper, 
-  ScrapingConfig, 
-  ScrapingResult, 
-  ScrapingError,
-  ProcessedPage,
-  ScrapingSummary,
-  HttpClientOptions
-} from '../types/index.js';
-import { HttpClient } from '../utils/httpClient.js';
-import { DefaultUrlDiscoverer } from './urlDiscoverer.js';
-import { DefaultContentExtractor } from '../extractors/contentExtractor.js';
+import { Scraper, ScrapingConfig, ScrapingResult, ProcessedPage, ScrapingError, ScrapingSummary, HttpClientOptions } from '../types/index.js';
+import { EnhancedUrlDiscoverer, EnhancedDiscoveryOptions } from './enhancedUrlDiscoverer.js';
+import { EnhancedContentExtractor, EnhancedExtractionOptions } from '../extractors/enhancedContentExtractor.js';
 import { MarkdownFormatter } from '../formatters/markdownFormatter.js';
 import { FileStorageAdapter } from '../storage/fileStorage.js';
+import { HttpClient } from '../utils/httpClient.js';
+import { SiteAnalysis } from '../strategies/SiteTypeDetector.js';
+
+// External dependencies
+import * as cliProgress from 'cli-progress';
+
+export interface DocumentationScraperOptions {
+  httpOptions?: Partial<HttpClientOptions>;
+  discoveryOptions?: EnhancedDiscoveryOptions;
+  extractionOptions?: EnhancedExtractionOptions;
+}
 
 export class DocumentationScraper implements Scraper {
   private httpClient: HttpClient;
-  private urlDiscoverer: DefaultUrlDiscoverer;
-  private contentExtractor: DefaultContentExtractor;
+  private urlDiscoverer: EnhancedUrlDiscoverer;
+  private contentExtractor: EnhancedContentExtractor;
   private formatter: MarkdownFormatter;
   private storageAdapter: FileStorageAdapter;
   private progressBar?: cliProgress.SingleBar;
+  private siteAnalysis?: SiteAnalysis; // Store site analysis for content extraction
 
-  constructor() {
+  constructor(options: DocumentationScraperOptions = {}) {
     const httpOptions: HttpClientOptions = {
-      timeout: 30000,
-      maxRetries: 25,
-      retryDelay: 50,
-      userAgent: 'DocumentationScraper/1.0.0 (Educational Purpose)'
+      timeout: 45000,
+      maxRetries: 3,
+      retryDelay: 1000,
+      userAgent: 'DocumentationScraper/1.0.0 (Educational Purpose)',
+      ...options.httpOptions
     };
 
     this.httpClient = new HttpClient(httpOptions);
-    this.urlDiscoverer = new DefaultUrlDiscoverer(this.httpClient);
-    this.contentExtractor = new DefaultContentExtractor();
+    this.urlDiscoverer = new EnhancedUrlDiscoverer(this.httpClient, options.discoveryOptions);
+    this.contentExtractor = new EnhancedContentExtractor(this.httpClient, {
+      useJinaReader: options.extractionOptions?.useJinaReader || false
+    });
     this.formatter = new MarkdownFormatter();
     this.storageAdapter = new FileStorageAdapter();
   }
@@ -51,7 +56,16 @@ export class DocumentationScraper implements Scraper {
         throw new Error('Scraping not allowed by robots.txt');
       }
 
-      // 2. Discover URLs
+      // 2. Get site analysis for better extraction strategy
+      console.log('🔬 Analyzing site type for optimal extraction...');
+      try {
+        this.siteAnalysis = await this.urlDiscoverer.analyzeSite(url);
+        console.log(`📊 Site analysis: ${this.siteAnalysis.type} (${this.siteAnalysis.confidence}% confidence)`);
+      } catch (error) {
+        console.warn(`⚠️  Site analysis failed, using default extraction: ${error}`);
+      }
+
+      // 3. Discover URLs using enhanced discovery
       console.log('🔍 Discovering URLs...');
       const discovery = await this.urlDiscoverer.discover(url, config);
       
@@ -75,10 +89,10 @@ export class DocumentationScraper implements Scraper {
         throw new Error('No URLs found to scrape');
       }
 
-      // 3. Setup progress tracking
+      // 4. Setup progress tracking
       this.setupProgressBar(urlsToScrape.length);
 
-      // 4. Process URLs with concurrency limit
+      // 5. Process URLs with concurrency limit
       await this.processUrlsWithConcurrency(
         urlsToScrape, 
         config, 
@@ -86,7 +100,7 @@ export class DocumentationScraper implements Scraper {
         errors
       );
 
-      // 5. Save results
+      // 6. Save results
       if (processedPages.length > 0) {
         console.log('\n💾 Saving results...');
         await this.storageAdapter.save(processedPages, config);
@@ -105,6 +119,9 @@ export class DocumentationScraper implements Scraper {
       });
     } finally {
       this.progressBar?.stop();
+      
+      // Cleanup resources
+      await this.contentExtractor.cleanup();
     }
 
     const endTime = new Date();
@@ -125,6 +142,48 @@ export class DocumentationScraper implements Scraper {
       pages: processedPages,
       errors,
       summary
+    };
+  }
+
+  /**
+   * Analyze site type without running full scraping
+   */
+  async analyzeSite(url: string) {
+    return this.urlDiscoverer.analyzeSite(url);
+  }
+
+  /**
+   * Compare static vs JavaScript discovery strategies
+   */
+  async compareDiscoveryStrategies(url: string, config: ScrapingConfig) {
+    return this.urlDiscoverer.compareStrategies(url, config);
+  }
+
+  /**
+   * Compare static vs JavaScript extraction strategies  
+   */
+  async compareExtractionStrategies(url: string, selectors?: any) {
+    const siteAnalysis = await this.urlDiscoverer.analyzeSite(url);
+    const response = await this.httpClient.get(url, 1000);
+    return this.contentExtractor.compareExtractionMethods(response.data, url, selectors, siteAnalysis);
+  }
+
+  /**
+   * Compare native extraction methods with Jina Reader API
+   */
+  async compareJinaExtraction(url: string, selectors?: any) {
+    const siteAnalysis = await this.urlDiscoverer.analyzeSite(url);
+    const response = await this.httpClient.get(url, 1000);
+    const result = await this.contentExtractor.compareWithJina(response.data, url, selectors, siteAnalysis);
+    
+    // Return the result directly without conversion
+    return {
+      staticResult: result.staticResult,
+      javascriptResult: result.javascriptResult,
+      jinaResult: result.jinaResult,
+      recommendation: result.recommendation === 'jina' ? 'Jina Reader' : 
+                     result.recommendation === 'javascript' ? 'JavaScript' : 'Static',
+      reason: result.reason
     };
   }
 
@@ -181,11 +240,12 @@ export class DocumentationScraper implements Scraper {
       // Fetch the page
       const response = await this.httpClient.get(url, config.rateLimitMs);
       
-      // Extract content
+      // Extract content using enhanced extractor with site analysis
       const extractedContent = await this.contentExtractor.extract(
         response.data, 
         url, 
-        config.selectors
+        config.selectors,
+        this.siteAnalysis // Pass site analysis for better extraction strategy
       );
 
       // Format content

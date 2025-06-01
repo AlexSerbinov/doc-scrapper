@@ -1,0 +1,37 @@
+{
+  "name": "parser-test-service",
+  "version": "1.0.0",
+  "description": "Standalone service for testing different documentation parsers",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js",
+    "build": "echo 'No build needed for pure JS'",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "@postlight/parser": "^2.2.3",
+    "axios": "^1.7.7",
+    "chalk": "^5.3.0",
+    "cheerio": "^1.0.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "jsdom": "^25.0.1",
+    "ora": "^8.1.0",
+    "turndown": "^7.2.0"
+  },
+  "keywords": [
+    "documentation",
+    "scraper",
+    "parser",
+    "mercury",
+    "readability",
+    "jina"
+  ],
+  "author": "DocScrapper Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/react": "19.1.6"
+  }
+}
