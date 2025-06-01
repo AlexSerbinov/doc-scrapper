@@ -17,30 +17,30 @@ export function Header() {
 
           {/* Навігація */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
+            {/* <Link 
               href="#features" 
               className="text-slate-300 hover:text-slate-100 transition-colors"
             >
               Можливості
-            </Link>
-            <Link 
+            </Link> */}
+            {/* <Link 
               href="#pricing" 
               className="text-slate-300 hover:text-slate-100 transition-colors"
             >
               Тарифи
-            </Link>
-            <Link 
+            // </Link> */}
+            {/* <Link 
               href="/login" 
               className="text-slate-300 hover:text-slate-100 transition-colors"
             >
               Увійти
-            </Link>
+            </Link> */}
           </nav>
 
           {/* Перемикач теми (тимчасово тільки іконка) */}
-          <button className="p-2 text-slate-400 hover:text-slate-200 transition-colors md:ml-4">
+          {/* <button className="p-2 text-slate-400 hover:text-slate-200 transition-colors md:ml-4">
             <Moon className="w-5 h-5" />
-          </button>
+          </button> */}
         </div>
       </div>
     </header>

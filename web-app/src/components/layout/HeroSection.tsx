@@ -146,7 +146,7 @@ export function HeroSection() {
           </div>
 
           {/* Додаткова інформація */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-slate-400 text-sm">
+          {/* <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 text-slate-400 text-sm">
             <div className="flex items-center gap-2">
               ✨ 7 днів безкоштовно
             </div>
@@ -156,7 +156,7 @@ export function HeroSection() {
             <div className="flex items-center gap-2">
               💳 Картка не потрібна
             </div>
-          </div>
+          </div> */}
 
           {/* Приклади сумісності */}
           <div className="mt-12 sm:mt-16">

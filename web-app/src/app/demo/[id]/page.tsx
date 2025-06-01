@@ -54,7 +54,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <h4 className="text-slate-200 font-semibold mb-2">Usage</h4>
             <p className="text-slate-400 text-sm">Queries: 0 / 100</p>
-            <p className="text-slate-400 text-sm">Trial expires: 7 days</p>
+            {/* <p className="text-slate-400 text-sm">Trial expires: 7 days</p> */}
           </div>
         </div>
 
