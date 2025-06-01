@@ -38,18 +38,18 @@ echo -e "${BLUE}🛑 Stopping Doc Scrapper Docker Environment${NC}"
 
 # Stop services
 echo -e "${YELLOW}⏹️ Stopping Docker services...${NC}"
-docker-compose --env-file="$ENV_FILE" down
+docker compose --env-file="$ENV_FILE" down
 
 if [[ -n "$CLEAN_FLAG" ]]; then
     echo -e "${YELLOW}🧹 Cleaning up Docker resources...${NC}"
     
     # Remove images
     echo -e "${YELLOW}🗑️ Removing Docker images...${NC}"
-    docker-compose --env-file="$ENV_FILE" down --rmi all --remove-orphans
+    docker compose --env-file="$ENV_FILE" down --rmi all --remove-orphans
     
     # Remove volumes (keeping data by default, uncomment if needed)
     # echo -e "${YELLOW}💾 Removing Docker volumes...${NC}"
-    # docker-compose --env-file="$ENV_FILE" down --volumes
+    # docker compose --env-file="$ENV_FILE" down --volumes
     
     # Clean unused Docker resources
     echo -e "${YELLOW}🗑️ Cleaning unused Docker resources...${NC}"

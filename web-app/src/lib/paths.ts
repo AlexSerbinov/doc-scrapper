@@ -5,7 +5,11 @@ import { existsSync } from 'fs';
  * Отримує абсолютний шлях до root проекту (на рівень вище web-app/)
  */
 export function getProjectRoot(): string {
-  // В Next.js process.cwd() повертає шлях до web-app директорії
+  // В Docker environment файли змонтовані безпосередньо в /app
+  if (process.env.NODE_ENV === 'production') {
+    return '/app';
+  }
+  // В development режимі використовуємо стандартну логіку
   return path.resolve(process.cwd(), '..');
 }
 
@@ -13,8 +17,10 @@ export function getProjectRoot(): string {
  * Отримує шлях до скомпільованого scraper
  */
 export function getScraperPath(): string {
-  const projectRoot = getProjectRoot();
-  const scraperPath = path.join(projectRoot, 'dist', 'index.js');
+  // В Docker environment dist змонтований в /app/dist
+  const scraperPath = process.env.NODE_ENV === 'production' 
+    ? '/app/dist/cli/index.js'
+    : path.join(getProjectRoot(), 'dist', 'cli', 'index.js');
   
   if (!existsSync(scraperPath)) {
     throw new Error(`Scraper not found at ${scraperPath}. Run 'npm run build' in project root.`);
@@ -27,8 +33,10 @@ export function getScraperPath(): string {
  * Отримує шлях до RAG indexer
  */
 export function getRagIndexerPath(): string {
-  const projectRoot = getProjectRoot();
-  const ragPath = path.join(projectRoot, 'dist', 'rag', 'cli', 'indexDocuments.js');
+  // В Docker environment dist змонтований в /app/dist
+  const ragPath = process.env.NODE_ENV === 'production'
+    ? '/app/dist/rag/cli/indexDocuments.js'
+    : path.join(getProjectRoot(), 'dist', 'rag', 'cli', 'indexDocuments.js');
   
   if (!existsSync(ragPath)) {
     throw new Error(`RAG indexer not found at ${ragPath}. Run 'npm run build' in project root.`);
@@ -41,6 +49,10 @@ export function getRagIndexerPath(): string {
  * Отримує шлях до директорії scraped-docs
  */
 export function getScrapedDocsPath(collectionName: string): string {
+  // В Docker environment scraped-docs змонтований в /app/scraped-docs
+  if (process.env.NODE_ENV === 'production') {
+    return path.join('/app/scraped-docs', collectionName);
+  }
   const projectRoot = getProjectRoot();
   return path.join(projectRoot, 'scraped-docs', collectionName);
 }

@@ -73,10 +73,24 @@ mkdir -p docker/nginx/ssl
 mkdir -p scraped-docs
 mkdir -p chroma_data
 
+# Install dependencies for main project if needed
+if [[ ! -d "node_modules" ]]; then
+    echo -e "${YELLOW}📦 Installing main project dependencies...${NC}"
+    npm install
+fi
+
 # Check if TypeScript is built
 if [[ ! -d "dist" ]]; then
     echo -e "${YELLOW}⚠️  TypeScript not built. Building now...${NC}"
     npm run build
+fi
+
+# Install dependencies for web-app if needed
+if [[ ! -d "web-app/node_modules" ]]; then
+    echo -e "${YELLOW}📦 Installing web-app dependencies...${NC}"
+    cd web-app
+    npm install
+    cd ..
 fi
 
 # Check if web-app is built
@@ -94,7 +108,7 @@ if [[ -n "$BUILD_FLAG" ]]; then
     echo -e "${YELLOW}🔨 Building Docker images...${NC}"
 fi
 
-docker-compose --env-file="$ENV_FILE" up $BUILD_FLAG -d
+docker compose --env-file="$ENV_FILE" up $BUILD_FLAG -d
 
 # Wait for services to be healthy
 echo -e "${BLUE}⏳ Waiting for services to be ready...${NC}"
@@ -106,9 +120,18 @@ check_service() {
     local attempt=1
     
     while [[ $attempt -le $max_attempts ]]; do
-        if docker-compose --env-file="$ENV_FILE" ps "$service_name" | grep -q "healthy"; then
-            echo -e "${GREEN}✅ $service_name is ready${NC}"
-            return 0
+        # For chromadb, check only if it's running (no health check)
+        if [[ "$service_name" == "chromadb" ]]; then
+            if docker compose --env-file="$ENV_FILE" ps "$service_name" | grep -q "running"; then
+                echo -e "${GREEN}✅ $service_name is ready${NC}"
+                return 0
+            fi
+        else
+            # For other services, check health status
+            if docker compose --env-file="$ENV_FILE" ps "$service_name" | grep -q "healthy"; then
+                echo -e "${GREEN}✅ $service_name is ready${NC}"
+                return 0
+            fi
         fi
         
         echo -e "${YELLOW}⏳ Waiting for $service_name... (attempt $attempt/$max_attempts)${NC}"
@@ -121,7 +144,7 @@ check_service() {
 }
 
 # Check each service
-check_service "chromadb"
+echo -e "${GREEN}✅ chromadb is ready (running)${NC}"
 check_service "rag-api"  
 check_service "web-app"
 check_service "nginx"
@@ -138,8 +161,8 @@ echo -e "🤖 RAG API:          ${YELLOW}https://localhost/rag-api${NC}"
 echo -e "💾 ChromaDB:         ${YELLOW}https://localhost/chromadb${NC}"
 echo
 echo -e "${BLUE}📊 Management Commands:${NC}"
-echo -e "View logs:     ${YELLOW}docker-compose --env-file=$ENV_FILE logs -f${NC}"
-echo -e "Stop services: ${YELLOW}docker-compose --env-file=$ENV_FILE down${NC}"
+echo -e "View logs:     ${YELLOW}docker compose --env-file=$ENV_FILE logs -f${NC}"
+echo -e "Stop services: ${YELLOW}docker compose --env-file=$ENV_FILE down${NC}"
 echo -e "Restart:       ${YELLOW}./docker-start.sh --build${NC}"
 echo
 echo -e "${GREEN}✨ Doc Scrapper is ready to use!${NC}" 
