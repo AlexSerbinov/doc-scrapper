@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Moon } from "lucide-react";
+// Temporarily disabled import - will be needed when re-enabling theme switcher
+// import { Moon } from "lucide-react";
 
 export function Header() {
   return (

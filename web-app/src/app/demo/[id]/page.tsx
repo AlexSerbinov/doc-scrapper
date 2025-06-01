@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { TrialBar } from '@/components/demo/TrialBar';
+// import { TrialBar } from '@/components/demo/TrialBar';
 import { DemoClientPage } from '@/components/demo/DemoClientPage';
 
 interface DemoPageProps {
@@ -19,8 +19,8 @@ export default async function DemoPage({ params }: DemoPageProps) {
 
   return (
     <div className="min-h-screen bg-slate-900 pt-16">
-      {/* Trial Information Bar */}
-      <TrialBar sessionId={sessionId} />
+      {/* Trial Information Bar - Temporarily disabled */}
+      {/* <TrialBar sessionId={sessionId} /> */}
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -53,7 +53,9 @@ export default async function DemoPage({ params }: DemoPageProps) {
           
           <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <h4 className="text-slate-200 font-semibold mb-2">Usage</h4>
-            <p className="text-slate-400 text-sm">Queries: 0 / 100</p>
+            <p className="text-slate-400 text-sm">AI Assistant Available</p>
+            {/* Trial functionality temporarily disabled */}
+            {/* <p className="text-slate-400 text-sm">Queries: 0 / 100</p> */}
             {/* <p className="text-slate-400 text-sm">Trial expires: 7 days</p> */}
           </div>
         </div>

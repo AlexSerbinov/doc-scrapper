@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   
   // Optimize for production
   reactStrictMode: true,
-  swcMinify: true,
   
   // Image optimization
   images: {
@@ -19,10 +18,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_RAG_API_URL: process.env.NEXT_PUBLIC_RAG_API_URL,
   },
   
-  // Experimental features for better Docker support
-  experimental: {
-    serverComponentsExternalPackages: ['sharp'],
-  },
+  // Server external packages for Docker support (Updated for Next.js 15)
+  serverExternalPackages: ['sharp'],
   
   // Webpack configuration for Docker
   webpack: (config, { isServer }) => {
