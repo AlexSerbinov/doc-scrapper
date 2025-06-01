@@ -40,7 +40,14 @@
     "dev:backend": "concurrently \"npm run chroma:start\" \"npm run rag:server\"",
     "dev:web": "npm run web:dev",
     "reindex": "npm run chroma:clean && npm run rag:index",
-    "health": "curl -s http://localhost:8001/health && echo"
+    "health": "curl -s http://localhost:8001/health && echo",
+    "docker:start": "chmod +x docker-start.sh && ./docker-start.sh",
+    "docker:stop": "chmod +x docker-stop.sh && ./docker-stop.sh",
+    "docker:build": "chmod +x docker-start.sh && ./docker-start.sh --build",
+    "docker:clean": "chmod +x docker-stop.sh && ./docker-stop.sh --clean",
+    "docker:logs": "docker-compose --env-file=docker.env logs -f",
+    "docker:status": "docker-compose --env-file=docker.env ps",
+    "docker:health": "curl -k https://localhost/health"
   },
   "bin": {
     "doc-scrapper": "./dist/index.js"
