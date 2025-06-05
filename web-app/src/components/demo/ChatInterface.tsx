@@ -101,9 +101,9 @@ export function ChatInterface({ sessionId, selectedCollection }: ChatInterfacePr
   };
 
   return (
-    <div className="bg-slate-800/70 backdrop-blur-sm rounded-lg shadow-xl border border-slate-700/50">
+    <div className="h-full flex flex-col">
       {/* Chat Header */}
-      <div className="border-b border-slate-700/50 p-4">
+      <div className="flex-shrink-0 border-b border-slate-700/50 p-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white font-semibold">AI</span>
@@ -121,7 +121,7 @@ export function ChatInterface({ sessionId, selectedCollection }: ChatInterfacePr
       </div>
 
       {/* Chat Messages Area */}
-      <div className="p-4 h-96 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4">
         <MessageList messages={messages} isLoading={isLoading} />
 
         {/* Example queries as clickable suggestions (only show when no messages yet) */}
@@ -136,7 +136,7 @@ export function ChatInterface({ sessionId, selectedCollection }: ChatInterfacePr
       </div>
 
       {/* Chat Input */}
-      <div className="border-t border-slate-700/50 p-4">
+      <div className="flex-shrink-0 border-t border-slate-700/50 p-4">
         <QueryInputArea
           onSendMessage={handleSendMessage}
           disabled={isLoading}

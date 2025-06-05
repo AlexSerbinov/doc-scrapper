@@ -253,7 +253,7 @@ function startScrapingProcess(url: string, collectionName: string, sessionId: st
           });
 
           startRAGIndexing(sessionId, outputPath, collectionName, ragIndexPath, projectRoot, sessionStartTime);
-        }, 500); // Small delay to ensure UI updates
+        }, 1500); // ⭐ INCREASED: Longer delay to ensure UI shows completion
         
       } else {
         console.error(`[${sessionId}] ❌ Scraping failed with code ${code}`);
@@ -362,6 +362,19 @@ function parseScraperOutput(sessionId: string, output: string, elapsedTime: numb
               elapsedTime
             }
           });
+          
+          // ⭐ NEW: Transition to indexing stage after completion
+          setTimeout(() => {
+            updateSessionStatus(sessionId, {
+              status: 'indexing',
+              currentStep: 'indexing',
+              progress: 75,
+              message: 'Починаємо AI обробку та індексацію...',
+              statistics: {
+                elapsedTime
+              }
+            });
+          }, 1000); // Delay to show completion message
         }
       } catch (error) {
         console.error(`[${sessionId}] Error parsing SCRAPING_COMPLETE:`, error);

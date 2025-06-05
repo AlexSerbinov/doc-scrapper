@@ -3,6 +3,7 @@
 import { X, CheckCircle, Loader, AlertCircle, ExternalLink, FileText } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { ConsolidatedDocsViewer } from "../ConsolidatedDocsViewer";
+import type { ProgressStatus } from "../../lib/sessionStatus";
 
 interface ProcessingModalProps {
   isOpen: boolean;
@@ -20,15 +21,7 @@ interface ProcessingStep {
   details?: string;
 }
 
-interface ProgressStatus {
-  sessionId: string;
-  status: 'starting' | 'scraping' | 'indexing' | 'completed' | 'error';
-  currentStep: string;
-  progress: number;
-  message: string;
-  error?: string;
-  chatUrl?: string;
-}
+// ProgressStatus is now imported from sessionStatus.ts
 
 export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionName }: ProcessingModalProps) {
   const [steps, setSteps] = useState<ProcessingStep[]>([
@@ -103,10 +96,17 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
           if (step.id === 'analyze') {
             return { ...step, status: 'completed' };
           } else if (step.id === 'scrape') {
+            // ⭐ FIXED: Check if scraping is actually completed (all pages processed)
+            const isScrapingComplete = status.statistics?.urlsProcessed && 
+                                     status.statistics?.urlsTotal && 
+                                     status.statistics.urlsProcessed >= status.statistics.urlsTotal;
+            
             return { 
               ...step, 
-              status: 'processing',
-              details: status.message 
+              status: isScrapingComplete ? 'completed' : 'processing',
+              details: status.statistics?.urlsTotal 
+                ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} сторінок`
+                : status.message 
             };
           }
           return { ...step, status: 'pending' };
@@ -220,7 +220,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
   if (showConsolidation) {
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+        <div className="bg-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-auto">
           <ConsolidatedDocsViewer
             collectionName={collectionName}
             projectName={getDomainFromUrl(url)}

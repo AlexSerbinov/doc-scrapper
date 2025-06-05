@@ -8,8 +8,7 @@ export async function POST(request: NextRequest) {
     const { message, trialId, collectionName } = body;
 
     // TODO: Use trialId for analytics and rate limiting
-    console.log('Trial ID:', trialId);
-    console.log('Collection:', collectionName);
+    console.log('🎯 Chat API request:', { trialId, collectionName, message: message.substring(0, 100) + '...' });
 
     if (!message) {
       return NextResponse.json(
@@ -42,14 +41,43 @@ export async function POST(request: NextRequest) {
     const ragData = await response.json();
 
     // Transform RAG response to match our UI format
+    const rawSources = ragData.sources?.map((source: { title?: string; url?: string; excerpt?: string; content?: string }) => {
+      // Extract URL from frontmatter if it's a local file path
+      let displayUrl = source.url || '#';
+      
+      // If URL is a local file path, try to extract URL from excerpt frontmatter
+      if (displayUrl.includes('/scraped-docs/') || displayUrl.startsWith('/Users/')) {
+        const frontmatterMatch = source.excerpt?.match(/url:\s*([^\n]+)/);
+        if (frontmatterMatch) {
+          displayUrl = frontmatterMatch[1].trim();
+        }
+      }
+      
+      return {
+        title: source.title || 'Unknown source',
+        url: displayUrl,
+        excerpt: source.excerpt || source.content?.substring(0, 150) || ''
+      };
+    }) || [];
+
+    // Deduplicate sources by URL (keep first occurrence)
+    const uniqueSources: { title: string; url: string; excerpt: string }[] = [];
+    const seenUrls = new Set<string>();
+    
+    rawSources.forEach((source: { title: string; url: string; excerpt: string }) => {
+      if (!seenUrls.has(source.url)) {
+        seenUrls.add(source.url);
+        uniqueSources.push(source);
+      }
+    });
+
     const formattedResponse = {
       content: ragData.content || 'Sorry, I could not generate a response.',
-      sources: ragData.sources?.map((source: { title?: string; url?: string; excerpt?: string; content?: string }) => ({
-        title: source.title || 'Untitled',
-        url: source.url || '#',
-        excerpt: source.excerpt || source.content?.substring(0, 150) || ''
-      })) || []
+      sources: uniqueSources
     };
+    
+    console.log(`📊 Sources deduplication: ${rawSources.length} → ${uniqueSources.length} unique sources`);
+    console.log('🔗 Unique sources:', formattedResponse.sources.map((s: { title: string; url: string }) => ({ title: s.title, url: s.url })));
 
     return NextResponse.json(formattedResponse);
 

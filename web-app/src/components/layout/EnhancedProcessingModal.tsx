@@ -139,9 +139,14 @@ export function EnhancedProcessingModal({
           if (step.id === 'analyze') {
             return { ...step, status: 'completed' };
           } else if (step.id === 'scrape') {
+            // ⭐ FIXED: Check if scraping is actually completed (all pages processed)
+            const isScrapingComplete = status.statistics?.urlsProcessed && 
+                                     status.statistics?.urlsTotal && 
+                                     status.statistics.urlsProcessed >= status.statistics.urlsTotal;
+            
             return { 
               ...step, 
-              status: 'processing',
+              status: isScrapingComplete ? 'completed' : 'processing',
               details: status.statistics?.urlsTotal 
                 ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} сторінок`
                 : status.message 
@@ -268,7 +273,7 @@ export function EnhancedProcessingModal({
   if (showConsolidation) {
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+        <div className="bg-slate-800 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-auto">
           <ConsolidatedDocsViewer
             collectionName={collectionName}
             projectName={getDomainFromUrl(url)}

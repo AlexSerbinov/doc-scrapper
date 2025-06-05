@@ -10,6 +10,7 @@ interface ConsolidatedDocsViewerProps {
   collectionName: string;
   projectName?: string;
   onClose?: () => void;
+  embedded?: boolean; // New prop to indicate if it's embedded in a tab
 }
 
 interface ConsolidationData {
@@ -25,7 +26,8 @@ interface ConsolidationData {
 export function ConsolidatedDocsViewer({ 
   collectionName, 
   projectName, 
-  onClose 
+  onClose,
+  embedded = false 
 }: ConsolidatedDocsViewerProps) {
   const [data, setData] = useState<ConsolidationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,8 +106,12 @@ export function ConsolidatedDocsViewer({
   };
 
   if (!data && !isLoading && !error) {
+    const containerClass = embedded 
+      ? "p-6" 
+      : "bg-slate-900 rounded-lg border border-slate-700 p-6";
+      
     return (
-      <div className="bg-slate-900 rounded-lg border border-slate-700 p-6">
+      <div className={containerClass}>
         <div className="text-center">
           <FileText className="w-12 h-12 text-blue-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-slate-100 mb-2">
@@ -137,8 +143,12 @@ export function ConsolidatedDocsViewer({
     );
   }
 
+  const containerClass = embedded 
+    ? "flex flex-col max-h-full" 
+    : "bg-slate-900 rounded-lg border border-slate-700 flex flex-col max-h-full";
+
   return (
-    <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+    <div className={containerClass}>
       {/* Header */}
       <div className="bg-slate-800 border-b border-slate-700 p-4">
         <div className="flex items-center justify-between">
@@ -243,7 +253,7 @@ export function ConsolidatedDocsViewer({
       )}
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-6 flex-1 overflow-auto">
         {isLoading && (
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-4" />
@@ -294,7 +304,7 @@ export function ConsolidatedDocsViewer({
               </div>
             ) : (
               <div className="bg-slate-800 rounded-lg overflow-hidden">
-                <pre className="p-4 text-sm text-slate-300 overflow-auto max-h-96 whitespace-pre-wrap">
+                <pre className="p-4 text-sm text-slate-300 overflow-auto whitespace-pre-wrap">
                   {data.markdown}
                 </pre>
               </div>
