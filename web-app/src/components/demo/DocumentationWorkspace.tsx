@@ -5,6 +5,7 @@ import { MessageSquare, FileText } from "lucide-react";
 import { ChatInterface } from "./ChatInterface";
 import { ConsolidatedDocsViewer } from "../ConsolidatedDocsViewer";
 import { CollectionSelector } from "./CollectionSelector";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface DocumentationWorkspaceProps {
   sessionId: string;
@@ -13,6 +14,7 @@ interface DocumentationWorkspaceProps {
 type TabType = 'chat' | 'docs' | 'settings';
 
 export function DocumentationWorkspace({ sessionId }: DocumentationWorkspaceProps) {
+  const { t } = useTranslationSafe();
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [selectedCollection, setSelectedCollection] = useState<string>('');
 
@@ -24,15 +26,15 @@ export function DocumentationWorkspace({ sessionId }: DocumentationWorkspaceProp
   const tabs = [
     {
       id: 'chat' as TabType,
-      label: 'AI Чат',
+      label: t('workspace.tabs.chat.label'),
       icon: MessageSquare,
-      description: 'Поставте питання до вашої документації'
+      description: t('workspace.tabs.chat.description')
     },
     {
       id: 'docs' as TabType,
-      label: 'Консолідовані Документи',
+      label: t('workspace.tabs.docs.label'),
       icon: FileText,
-      description: 'Перегляд та експорт об\'єднаної документації'
+      description: t('workspace.tabs.docs.description')
     }
   ];
 
@@ -52,7 +54,7 @@ export function DocumentationWorkspace({ sessionId }: DocumentationWorkspaceProp
           {selectedCollection && (
             <div className="flex items-center gap-2 text-sm text-green-400">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              Готово до роботи
+              {t('common.readyToWork')}
             </div>
           )}
         </div>
@@ -89,8 +91,12 @@ export function DocumentationWorkspace({ sessionId }: DocumentationWorkspaceProp
           <div className="h-full flex items-center justify-center">
             <div className="text-center text-slate-400">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Оберіть колекцію документації</h3>
-              <p className="text-sm">Спочатку оберіть колекцію документації для роботи</p>
+              <h3 className="text-lg font-medium mb-2">
+                {t('workspace.selectCollection.title')}
+              </h3>
+              <p className="text-sm">
+                {t('workspace.selectCollection.subtitle')}
+              </p>
             </div>
           </div>
         ) : (
@@ -126,13 +132,13 @@ export function DocumentationWorkspace({ sessionId }: DocumentationWorkspaceProp
             {activeTab === 'chat' && (
               <>
                 <MessageSquare className="w-3 h-3" />
-                Підказка: Ставте конкретні питання для кращих результатів
+                {t('workspace.tips.chat')}
               </>
             )}
             {activeTab === 'docs' && (
               <>
                 <FileText className="w-3 h-3" />
-                Підказка: Використовуйте консолідовані документи з ChatGPT, Claude або Gemini
+                {t('workspace.tips.docs')}
               </>
             )}
           </div>

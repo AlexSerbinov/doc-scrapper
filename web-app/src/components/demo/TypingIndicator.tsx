@@ -1,8 +1,10 @@
 "use client";
 
 import { Bot } from "lucide-react";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 export function TypingIndicator() {
+  const { t } = useTranslationSafe();
   return (
     <div className="flex items-start gap-3 max-w-xl">
       {/* AI Avatar */}
@@ -13,7 +15,7 @@ export function TypingIndicator() {
       {/* Typing animation */}
       <div className="bg-slate-700 rounded-lg px-4 py-3">
         <div className="flex items-center space-x-1">
-          <div className="text-slate-300 text-sm mr-2">AI набирає</div>
+          <div className="text-slate-300 text-sm mr-2">{t('chat.aiTyping')}</div>
           <div className="flex space-x-1">
             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
             <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>

@@ -1,23 +1,22 @@
 "use client";
 
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
+
 interface ExampleQueriesProps {
   onSelectQuery: (query: string) => void;
   disabled?: boolean;
 }
 
 export function ExampleQueries({ onSelectQuery, disabled }: ExampleQueriesProps) {
-  const exampleQueries = [
-    "Покажи приклад використання generateText з OpenAI",
-    "Як налаштувати streaming в AI SDK?",
-    "Які провайдери підтримує AI SDK?",
-    "Розкажи про embeddings та їх використання",
-    "Покажи приклад чат-бота з інструментами"
-  ];
+  const { t, getTranslationArray } = useTranslationSafe();
+
+  // Get example queries array from translations
+  const exampleQueries = getTranslationArray('chat.exampleQueries.examples');
 
   return (
     <div className="mb-6">
       <p className="text-sm text-slate-400 mb-3">
-        💡 Спробуйте ці приклади або задайте власне запитання:
+        {t('chat.exampleQueries.title')}
       </p>
       <div className="flex flex-wrap gap-2">
         {exampleQueries.map((query, index) => (

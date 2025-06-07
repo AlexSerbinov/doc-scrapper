@@ -2,19 +2,20 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { currentLanguage, t } from "@/locales";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Doc Scrapper AI - Розблокуйте Силу Вашої Документації",
-  description: "Миттєво перетворіть вашу онлайн-документацію на інтерактивного AI-помічника. Отримуйте відповіді, а не просто результати пошуку.",
-  keywords: "AI документація, скрапінг документації, AI асистент, машинне навчання",
+  title: t('metadata.title'),
+  description: t('metadata.description'),
+  keywords: t('metadata.keywords'),
   authors: [{ name: "Alex Serbinov" }],
   openGraph: {
-    title: "Doc Scrapper - AI Documentation Assistant",
-    description: "Знайдіть відповіді у документації миттєво з допомогою AI",
+    title: t('metadata.ogTitle'),
+    description: t('metadata.ogDescription'),
     type: "website",
-    locale: "uk_UA",
+    locale: currentLanguage === 'ua' ? "uk_UA" : "en_US",
   },
   icons: {
     icon: "/favicon.ico",
@@ -27,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className="dark">
+    <html lang={currentLanguage === 'ua' ? 'uk' : 'en'} className="dark">
       <body className={inter.className}>
         {/* Global cosmic background stars */}
         <div className="global-cosmic-stars"></div>

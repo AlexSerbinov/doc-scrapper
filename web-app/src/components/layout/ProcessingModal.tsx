@@ -3,6 +3,7 @@
 import { X, CheckCircle, Loader, AlertCircle, ExternalLink, FileText } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { ConsolidatedDocsViewer } from "../ConsolidatedDocsViewer";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 import type { ProgressStatus } from "../../lib/sessionStatus";
 
 interface ProcessingModalProps {
@@ -24,23 +25,24 @@ interface ProcessingStep {
 // ProgressStatus is now imported from sessionStatus.ts
 
 export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionName }: ProcessingModalProps) {
+  const { t } = useTranslationSafe();
   const [steps, setSteps] = useState<ProcessingStep[]>([
     {
       id: 'analyze',
-      title: 'Аналіз структури сайту',
-      description: 'Досліджуємо архітектуру та навігацію вашої документації',
+      title: t('processing.steps.analyze.title'),
+      description: t('processing.steps.analyze.description'),
       status: 'pending'
     },
     {
       id: 'scrape',
-      title: 'Збір контенту сторінок',
-      description: 'Завантажуємо та обробляємо всі сторінки документації',
+      title: t('processing.steps.scrape.title'),
+      description: t('processing.steps.scrape.description'),
       status: 'pending'
     },
     {
       id: 'process',
-      title: 'AI обробка та індексація',
-      description: 'Створюємо векторну базу знань для оптимального пошуку',
+      title: t('processing.steps.process.title'),
+      description: t('processing.steps.process.description'),
       status: 'pending'
     }
   ]);
@@ -50,41 +52,8 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
   const [error, setError] = useState<string | null>(null);
   const [showConsolidation, setShowConsolidation] = useState(false);
 
-  // Функція для отримання статусу прогресу
-  const fetchProgress = useCallback(async () => {
-    if (!sessionId) return;
-
-    try {
-      const response = await fetch(`/api/progress/${sessionId}`);
-      if (response.ok) {
-        const status: ProgressStatus = await response.json();
-        setProgressStatus(status);
-        
-        // Оновлюємо кроки на основі статусу
-        updateStepsFromStatus(status);
-        
-        // Якщо завершено або помилка, зупиняємо polling
-        if (status.status === 'completed' || status.status === 'error') {
-          setIsPolling(false);
-          
-          if (status.status === 'completed' && status.chatUrl) {
-            // Перенаправляємо на чат через 2 секунди
-            setTimeout(() => {
-              window.location.href = status.chatUrl!;
-            }, 2000);
-          }
-        }
-      } else {
-        console.error('Failed to fetch progress');
-      }
-    } catch (err) {
-      console.error('Error fetching progress:', err);
-      setError('Помилка отримання статусу обробки');
-    }
-  }, [sessionId]);
-
   // Оновлення кроків на основі статусу
-  const updateStepsFromStatus = (status: ProgressStatus) => {
+  const updateStepsFromStatus = useCallback((status: ProgressStatus) => {
     setSteps(prev => prev.map(step => {
       switch (status.status) {
         case 'starting':
@@ -105,7 +74,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
               ...step, 
               status: isScrapingComplete ? 'completed' : 'processing',
               details: status.statistics?.urlsTotal 
-                ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} сторінок`
+                ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} ${t('processing.pages')}`
                 : status.message 
             };
           }
@@ -136,7 +105,42 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
           return step;
       }
     }));
-  };
+  }, [t]);
+
+  // Функція для отримання статусу прогресу
+  const fetchProgress = useCallback(async () => {
+    if (!sessionId) return;
+
+    try {
+      const response = await fetch(`/api/progress/${sessionId}`);
+      if (response.ok) {
+        const status: ProgressStatus = await response.json();
+        setProgressStatus(status);
+        
+        // Оновлюємо кроки на основі статусу
+        updateStepsFromStatus(status);
+        
+        // Якщо завершено або помилка, зупиняємо polling
+        if (status.status === 'completed' || status.status === 'error') {
+          setIsPolling(false);
+          
+          if (status.status === 'completed' && status.chatUrl) {
+            // Перенаправляємо на чат через 2 секунди
+            setTimeout(() => {
+              window.location.href = status.chatUrl!;
+            }, 2000);
+          }
+        }
+      } else {
+        console.error('Failed to fetch progress');
+      }
+    } catch (err) {
+      console.error('Error fetching progress:', err);
+      setError(t('processing.statusError'));
+    }
+  }, [sessionId, t, updateStepsFromStatus]);
+
+
 
   // Polling для прогресу
   useEffect(() => {
@@ -246,19 +250,19 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
         {/* Заголовок */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-semibold text-slate-100 mb-3">
-            {hasError ? '❌ Помилка обробки' : isCompleted ? '✅ Готово!' : '🪄 Магія Почалася!'}
+            {hasError ? t('processing.status.error') : isCompleted ? t('processing.status.ready') : t('processing.status.started')}
           </h2>
           <p className="text-slate-300">
-            {hasError ? 'Сталася помилка під час обробки' : 
-             isCompleted ? 'Ваш AI-помічник готовий для' :
-             'Готуємо Вашу Документацію Для'}
+            {hasError ? t('processing.errorProcessing') : 
+             isCompleted ? t('processing.readyFor') :
+             t('processing.preparingFor')}
           </p>
           <p className="text-blue-400 font-medium mt-1">
             {getDomainFromUrl(url)}
           </p>
           {collectionName && (
             <p className="text-slate-500 text-sm mt-1">
-              Колекція: {collectionName}
+              {t('processing.collection')} {collectionName}
             </p>
           )}
         </div>
@@ -313,13 +317,13 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
             <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
               <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
               <p className="text-red-400 font-medium text-center">
-                {error || progressStatus?.error || 'Сталася невідома помилка'}
+                {error || progressStatus?.error || t('processing.error.unknown')}
               </p>
               <button
                 onClick={onClose}
                 className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors"
               >
-                Закрити
+                {t('processing.error.close')}
               </button>
             </div>
           </div>
@@ -331,7 +335,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
             <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4">
               <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
               <p className="text-green-400 font-medium text-center mb-4">
-                Готово! Ваш AI помічник створено успішно
+                {t('processing.completed.success')}
               </p>
               
               {/* Основні дії */}
@@ -341,7 +345,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
                     href={progressStatus.chatUrl}
                     className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
                   >
-                    Перейти до чату з AI
+                    {t('processing.completed.goToChat')}
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 )}
@@ -352,11 +356,11 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <FileText className="w-4 h-4" />
-                  Отримати Документацію в Одному Файлі
+                  {t('processing.completed.getConsolidated')}
                 </button>
                 
                 <p className="text-xs text-green-300 text-center mt-2">
-                  💡 Ідеально для використання з ChatGPT, Gemini чи Claude
+                  💡 {t('processing.completed.perfectFor')}
                 </p>
               </div>
             </div>
@@ -367,15 +371,14 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
         {!hasError && !isCompleted && (
           <div className="text-center">
             <p className="text-sm text-slate-400">
-              Це може зайняти від декількох секунд до декількох хвилин, 
-              залежно від розміру документації.
+              {t('processing.info.duration')}
             </p>
             <p className="text-sm text-slate-500 mt-2">
-              Будь ласка, не закривайте сторінку.
+              {t('processing.info.dontClose')}
             </p>
             {sessionId && (
               <p className="text-xs text-slate-600 mt-2">
-                Session ID: {sessionId}
+                {t('processing.info.sessionId')} {sessionId}
               </p>
             )}
           </div>

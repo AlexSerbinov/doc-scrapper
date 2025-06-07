@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { EnhancedProcessingModal } from './layout/EnhancedProcessingModal';
+import { useTranslationSafe } from '../hooks/useTranslationSafe';
 
 export function DocumentationForm() {
+  const { t } = useTranslationSafe();
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -16,7 +18,7 @@ export function DocumentationForm() {
     e.preventDefault();
     
     if (!url.trim()) {
-      alert('Будь ласка, введіть URL документації');
+      alert(t('form.errors.enterUrl'));
       return;
     }
 
@@ -24,7 +26,7 @@ export function DocumentationForm() {
     try {
       new URL(url);
     } catch {
-      alert('Будь ласка, введіть валідний URL');
+      alert(t('form.errors.invalidUrl'));
       return;
     }
 
@@ -49,11 +51,11 @@ export function DocumentationForm() {
         });
         setShowModal(true);
       } else {
-        alert(`Помилка: ${data.error}`);
+        alert(t('form.errors.serverError', { error: data.error }));
       }
     } catch (error) {
       console.error('Scraping error:', error);
-      alert('Помилка при відправці запиту. Перевірте підключення до інтернету.');
+      alert(t('form.errors.requestError'));
     } finally {
       setIsLoading(false);
     }
@@ -73,19 +75,19 @@ export function DocumentationForm() {
             htmlFor="documentation-url" 
             className="block text-sm font-medium text-gray-300 mb-2"
           >
-            URL документації
+            {t('form.urlLabel')}
           </label>
           <input
             id="documentation-url"
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://docs.example.com"
+            placeholder={t('form.urlPlaceholder')}
             disabled={isLoading}
             className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
           />
           <p className="mt-2 text-xs text-gray-400">
-            Введіть URL головної сторінки документації. Ми автоматично знайдемо всі пов&apos;язані сторінки.
+            {t('form.urlDescription')}
           </p>
         </div>
         
@@ -97,15 +99,15 @@ export function DocumentationForm() {
           {isLoading ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Запускаю AI-помічника...
+              {t('form.creatingButton')}
             </>
           ) : (
-            '🚀 Створити AI-Помічника'
+            `🚀 ${t('form.createButton')}`
           )}
         </button>
         
         <p className="text-xs text-gray-500 text-center">
-          Процес займає 1-3 хвилини залежно від розміру документації
+          {t('form.processTime')}
         </p>
       </form>
 

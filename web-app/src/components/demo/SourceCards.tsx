@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, FileText } from "lucide-react";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface Source {
   title: string;
@@ -13,6 +14,8 @@ interface SourceCardsProps {
 }
 
 export function SourceCards({ sources }: SourceCardsProps) {
+  const { t } = useTranslationSafe();
+  
   const truncateText = (text: string, maxLength: number = 150) => {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + '...';
@@ -30,7 +33,7 @@ export function SourceCards({ sources }: SourceCardsProps) {
   return (
     <div>
       <div className="text-xs text-slate-400 mb-2 font-medium">
-        Джерела ({sources.length}):
+        {t('chat.sourcesCount', { count: sources.length })}
       </div>
       
       <div className="grid gap-2 md:grid-cols-2">

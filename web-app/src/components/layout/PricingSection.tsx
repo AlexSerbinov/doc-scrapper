@@ -3,6 +3,7 @@
 // Temporarily disabled imports - will be needed when re-enabling pricing
 // import React from 'react';
 // import { Check, Star, Zap } from 'lucide-react';
+// import { useTranslation } from '../../hooks/useTranslation';
 
 // Temporarily disabled interface and component - will be needed when re-enabling pricing
 /*
@@ -29,6 +30,8 @@ function PricingCard({
   isPopular = false,
   isFree = false 
 }: PricingCardProps) {
+  const { t } = useTranslationSafe();
+  
   return (
     <div className={`
       relative bg-slate-800/50 backdrop-blur-sm rounded-lg p-6 shadow-lg
@@ -40,7 +43,7 @@ function PricingCard({
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
             <Star className="w-4 h-4" />
-            Найпопулярніший
+            {t('pricing.mostPopular')}
           </div>
         </div>
       )}
@@ -48,7 +51,7 @@ function PricingCard({
       {isFree && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
           <div className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-            Безкоштовно
+            {t('pricing.free')}
           </div>
         </div>
       )}
@@ -101,5 +104,8 @@ function PricingCard({
 export function PricingSection() {
   // Temporarily disabled pricing section functionality
   // TODO: Re-enable when implementing subscription system
+  // All translations are already prepared:
+  // - t('pricing.mostPopular') for "Найпопулярніший"
+  // - t('pricing.free') for "Безкоштовно"
   return null;
 } 

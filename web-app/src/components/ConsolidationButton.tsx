@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { ConsolidatedDocsViewer } from './ConsolidatedDocsViewer';
+import { useTranslationSafe } from '../hooks/useTranslationSafe';
 
 interface ConsolidationButtonProps {
   collectionName?: string;
@@ -19,6 +20,7 @@ export function ConsolidationButton({
   size = 'md',
   showLabel = true
 }: ConsolidationButtonProps) {
+  const { t } = useTranslationSafe();
   const [showViewer, setShowViewer] = useState(false);
 
   const handleClick = () => {
@@ -56,7 +58,7 @@ export function ConsolidationButton({
         <FileText className={`${size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'}`} />
         {showLabel && (
           <span>
-            {size === 'sm' ? 'Консолідація' : 'Консолідована Документація'}
+            {size === 'sm' ? t('consolidation.button') : t('consolidation.buttonFull')}
           </span>
         )}
       </button>

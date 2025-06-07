@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { EnhancedProcessingModal } from "./EnhancedProcessingModal";
-import { useTranslation } from "../../hooks/useTranslation";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 export function HeroSection() {
-  const { t } = useTranslation();
+  const { t } = useTranslationSafe();
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showProcessingModal, setShowProcessingModal] = useState(false);
@@ -162,7 +162,7 @@ export function HeroSection() {
           {/* Приклади сумісності */}
           <div className="mt-12 sm:mt-16">
             <p className="text-slate-500 text-sm mb-4">
-              Працює з усіма популярними платформами документації:
+              {t('hero.compatibilityNote')}
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-6 text-slate-400 text-sm">
               <span className="bg-slate-800/50 backdrop-blur-sm px-3 py-1 rounded">GitBook</span>

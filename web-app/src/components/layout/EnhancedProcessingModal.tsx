@@ -4,6 +4,7 @@ import { X, CheckCircle, Loader, AlertCircle, ExternalLink, FileText, Settings, 
 import { useState, useEffect, useCallback } from "react";
 import { ConsolidatedDocsViewer } from "../ConsolidatedDocsViewer";
 import { formatTime, type ProgressStatus, type ProgressBarSettings } from "../../lib/sessionStatus";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface EnhancedProcessingModalProps {
   isOpen: boolean;
@@ -28,23 +29,24 @@ export function EnhancedProcessingModal({
   sessionId, 
   collectionName 
 }: EnhancedProcessingModalProps) {
+  const { t } = useTranslationSafe();
   const [steps, setSteps] = useState<ProcessingStep[]>([
     {
       id: 'analyze',
-      title: 'Аналіз структури сайту',
-      description: 'Досліджуємо архітектуру та навігацію вашої документації',
+      title: t('processing.steps.analyze.title'),
+      description: t('processing.steps.analyze.description'),
       status: 'pending'
     },
     {
       id: 'scrape',
-      title: 'Збір контенту сторінок',
-      description: 'Завантажуємо та обробляємо всі сторінки документації',
+      title: t('processing.steps.scrape.title'),
+      description: t('processing.steps.scrape.description'),
       status: 'pending'
     },
     {
       id: 'process',
-      title: 'AI обробка та індексація',
-      description: 'Створюємо векторну базу знань для оптимального пошуку',
+      title: t('processing.steps.process.title'),
+      description: t('processing.steps.process.description'),
       status: 'pending'
     }
   ]);
@@ -62,6 +64,101 @@ export function EnhancedProcessingModal({
   const [error, setError] = useState<string | null>(null);
   const [showConsolidation, setShowConsolidation] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Оновлення кроків на основі статусу
+  const updateStepsFromStatus = useCallback((status: ProgressStatus) => {
+    setSteps(prev => prev.map(step => {
+      switch (status.status) {
+        case 'starting':
+          return step.id === 'analyze' 
+            ? { ...step, status: 'processing' }
+            : { ...step, status: 'pending' };
+        
+        case 'scraping':
+          if (step.id === 'analyze') {
+            return { ...step, status: 'completed' };
+          } else if (step.id === 'scrape') {
+            // ⭐ FIXED: Check if scraping is actually completed (all pages processed)
+            const isScrapingComplete = status.statistics?.urlsProcessed && 
+                                     status.statistics?.urlsTotal && 
+                                     status.statistics.urlsProcessed >= status.statistics.urlsTotal;
+            
+            return { 
+              ...step, 
+              status: isScrapingComplete ? 'completed' : 'processing',
+              details: status.statistics?.urlsTotal 
+                ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} ${t('processing.pages')}`
+                : status.message 
+            };
+          }
+          return { ...step, status: 'pending' };
+        
+        case 'indexing':
+          if (step.id === 'analyze') {
+            return { ...step, status: 'completed' };
+          } else if (step.id === 'scrape') {
+            // Update details with final numbers when moving to indexing
+            return { 
+              ...step, 
+              status: 'completed',
+              details: status.statistics?.urlsTotal 
+                ? `${status.statistics.urlsTotal}/${status.statistics.urlsTotal} ${t('processing.pages')}`
+                : step.details 
+            };
+          } else if (step.id === 'process') {
+            // Enhanced AI processing details ⭐ FIXED: Prioritize chunks over documents
+            let details = status.message;
+            
+            // ⭐ FIXED: Show embeddings progress, then chunks, avoid embeddingsGenerated
+            if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
+              details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
+            } else if (status.statistics?.chunksCreated) {
+              details = t('processing.createdBlocks', { count: status.statistics.chunksCreated });
+            } else if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
+              details = `${t('processing.progress.documents')}: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
+            }
+            // Remove embeddingsGenerated to prevent accumulation issues
+            
+            return { 
+              ...step, 
+              status: 'processing',
+              details
+            };
+          }
+          return step;
+        
+        case 'completed':
+          if (step.id === 'process') {
+            // Update AI processing details with final numbers when completed
+            let finalDetails = t('common.ready');
+            
+            // Use embeddingsTotal as the authoritative source for final count
+            if (status.statistics?.embeddingsTotal) {
+              finalDetails = t('processing.indexedBlocks', { count: status.statistics.embeddingsTotal });
+            } else if (status.statistics?.chunksCreated) {
+              finalDetails = t('processing.createdBlocks', { count: status.statistics.chunksCreated });
+            }
+            // Remove embeddingsGenerated fallback as it accumulates across sessions
+            
+            return { 
+              ...step, 
+              status: 'completed',
+              details: finalDetails
+            };
+          }
+          return { ...step, status: 'completed' };
+        
+        case 'error':
+          if (step.status === 'processing') {
+            return { ...step, status: 'error', details: status.error };
+          }
+          return step;
+        
+        default:
+          return step;
+      }
+    }));
+  }, [t]);
 
   // Функція для отримання статусу прогресу
   const fetchProgress = useCallback(async () => {
@@ -85,9 +182,9 @@ export function EnhancedProcessingModal({
       }
     } catch (err) {
       console.error('Error fetching progress:', err);
-      setError('Помилка отримання статусу обробки');
+      setError(t('processing.statusError'));
     }
-  }, [sessionId]);
+  }, [sessionId, t, updateStepsFromStatus]);
 
   // Функція для отримання та оновлення налаштувань
   const fetchSettings = useCallback(async () => {
@@ -126,100 +223,7 @@ export function EnhancedProcessingModal({
     }
   };
 
-  // Оновлення кроків на основі статусу
-  const updateStepsFromStatus = (status: ProgressStatus) => {
-    setSteps(prev => prev.map(step => {
-      switch (status.status) {
-        case 'starting':
-          return step.id === 'analyze' 
-            ? { ...step, status: 'processing' }
-            : { ...step, status: 'pending' };
-        
-        case 'scraping':
-          if (step.id === 'analyze') {
-            return { ...step, status: 'completed' };
-          } else if (step.id === 'scrape') {
-            // ⭐ FIXED: Check if scraping is actually completed (all pages processed)
-            const isScrapingComplete = status.statistics?.urlsProcessed && 
-                                     status.statistics?.urlsTotal && 
-                                     status.statistics.urlsProcessed >= status.statistics.urlsTotal;
-            
-            return { 
-              ...step, 
-              status: isScrapingComplete ? 'completed' : 'processing',
-              details: status.statistics?.urlsTotal 
-                ? `${status.statistics.urlsProcessed || 0}/${status.statistics.urlsTotal} сторінок`
-                : status.message 
-            };
-          }
-          return { ...step, status: 'pending' };
-        
-        case 'indexing':
-          if (step.id === 'analyze') {
-            return { ...step, status: 'completed' };
-          } else if (step.id === 'scrape') {
-            // Update details with final numbers when moving to indexing
-            return { 
-              ...step, 
-              status: 'completed',
-              details: status.statistics?.urlsTotal 
-                ? `${status.statistics.urlsTotal}/${status.statistics.urlsTotal} сторінок`
-                : step.details 
-            };
-          } else if (step.id === 'process') {
-            // Enhanced AI processing details ⭐ FIXED: Prioritize chunks over documents
-            let details = status.message;
-            
-            // ⭐ FIXED: Show embeddings progress, then chunks, avoid embeddingsGenerated
-            if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
-              details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
-            } else if (status.statistics?.chunksCreated) {
-              details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
-            } else if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
-              details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
-            }
-            // Remove embeddingsGenerated to prevent accumulation issues
-            
-            return { 
-              ...step, 
-              status: 'processing',
-              details
-            };
-          }
-          return step;
-        
-        case 'completed':
-          if (step.id === 'process') {
-            // Update AI processing details with final numbers when completed
-            let finalDetails = 'Готово!';
-            
-            // Use embeddingsTotal as the authoritative source for final count
-            if (status.statistics?.embeddingsTotal) {
-              finalDetails = `Проіндексовано ${status.statistics.embeddingsTotal} блоків`;
-            } else if (status.statistics?.chunksCreated) {
-              finalDetails = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
-            }
-            // Remove embeddingsGenerated fallback as it accumulates across sessions
-            
-            return { 
-              ...step, 
-              status: 'completed',
-              details: finalDetails
-            };
-          }
-          return { ...step, status: 'completed' };
-        
-        case 'error':
-          if (step.status === 'processing') {
-            return { ...step, status: 'error', details: status.error };
-          }
-          return step;
-        
-        default:
-          return step;
-      }
-    }));
-  };
+
 
   // Polling для прогресу
   useEffect(() => {
@@ -326,7 +330,7 @@ export function EnhancedProcessingModal({
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-full bg-blue-400 animate-pulse"></div>
               <h2 className="text-xl font-semibold text-slate-100">
-                {hasError ? '❌ Помилка обробки' : isCompleted ? '✅ Готово!' : '🪄 Магія в процесі'}
+                {hasError ? t('processing.status.error') : isCompleted ? t('processing.status.ready') : t('processing.status.inProgress')}
               </h2>
             </div>
             
@@ -335,7 +339,7 @@ export function EnhancedProcessingModal({
               <button
                 onClick={handleToggleSettings}
                 className="p-2 text-slate-400 hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-600"
-                title="Налаштування відображення"
+                title={t('processing.settings.title')}
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -354,16 +358,16 @@ export function EnhancedProcessingModal({
           {/* Site info */}
           <div className="mt-2">
             <p className="text-slate-300 text-sm">
-              {hasError ? 'Сталася помилка під час обробки' : 
-               isCompleted ? 'Ваш AI-помічник готовий для' :
-               'Готуємо Вашу Документацію Для'}
+              {hasError ? t('processing.errorProcessing') : 
+               isCompleted ? t('processing.readyFor') :
+               t('processing.preparingFor')}
             </p>
             <p className="text-blue-400 font-medium">
               {getDomainFromUrl(url)}
             </p>
             {collectionName && (
               <p className="text-slate-500 text-xs">
-                Колекція: {collectionName}
+                {t('processing.collection')} {collectionName}
               </p>
             )}
           </div>
@@ -375,7 +379,7 @@ export function EnhancedProcessingModal({
             <div className="mb-6 p-4 bg-slate-700 rounded-lg border border-slate-600">
               <h3 className="text-lg font-medium text-slate-100 mb-4 flex items-center gap-2">
                 <Settings className="w-5 h-5" />
-                Налаштування відображення
+                {t('processing.settings.title')}
               </h3>
               
               <div className="grid grid-cols-2 gap-4">
@@ -386,7 +390,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ showDetailedStats: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Детальна статистика</span>
+                  <span className="text-slate-300">{t('processing.settings.detailed')}</span>
                 </label>
                 
                 <label className="flex items-center gap-2 text-sm">
@@ -396,7 +400,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ showTimingInfo: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Інформація про час</span>
+                  <span className="text-slate-300">{t('processing.settings.timing')}</span>
                 </label>
                 
                 <label className="flex items-center gap-2 text-sm">
@@ -406,7 +410,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ showRateInfo: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Швидкість обробки</span>
+                  <span className="text-slate-300">{t('processing.settings.rate')}</span>
                 </label>
                 
                 <label className="flex items-center gap-2 text-sm">
@@ -416,7 +420,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ showCurrentUrl: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Поточна сторінка</span>
+                  <span className="text-slate-300">{t('processing.settings.currentPage')}</span>
                 </label>
                 
                 <label className="flex items-center gap-2 text-sm">
@@ -426,7 +430,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ animateProgress: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Анімація прогресу</span>
+                  <span className="text-slate-300">{t('processing.settings.animation')}</span>
                 </label>
                 
                 <label className="flex items-center gap-2 text-sm">
@@ -436,7 +440,7 @@ export function EnhancedProcessingModal({
                     onChange={(e) => updateSettings({ compactView: e.target.checked })}
                     className="rounded border-slate-500 bg-slate-600 text-blue-500"
                   />
-                  <span className="text-slate-300">Компактний вигляд</span>
+                  <span className="text-slate-300">{t('processing.settings.compact')}</span>
                 </label>
               </div>
             </div>
@@ -448,7 +452,7 @@ export function EnhancedProcessingModal({
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-slate-300">
-                  Загальний прогрес
+                  {t('processing.progress.overall')}
                 </span>
                 <span className="text-sm text-slate-400">
                   {Math.round(getProgressPercentage())}%
@@ -474,7 +478,7 @@ export function EnhancedProcessingModal({
                     <div className="text-lg font-bold text-blue-400">
                       {progressStatus.statistics.urlsProcessed || 0}/{progressStatus.statistics.urlsTotal}
                     </div>
-                    <div className="text-xs text-slate-400">Сторінок</div>
+                    <div className="text-xs text-slate-400">{t('processing.progress.pages')}</div>
                   </div>
                 )}
 
@@ -487,7 +491,7 @@ export function EnhancedProcessingModal({
                     <div className="text-lg font-bold text-yellow-400">
                       {progressStatus.statistics.embeddingsProcessed}/{progressStatus.statistics.embeddingsTotal}
                     </div>
-                    <div className="text-xs text-slate-400">Embeddings</div>
+                    <div className="text-xs text-slate-400">{t('processing.progress.embeddings')}</div>
                   </div>
                 )}
 
@@ -498,7 +502,7 @@ export function EnhancedProcessingModal({
                     <div className="text-lg font-bold text-purple-400">
                       {progressStatus.statistics.chunksCreated.toLocaleString()}
                     </div>
-                    <div className="text-xs text-slate-400">Блоків</div>
+                    <div className="text-xs text-slate-400">{t('processing.progress.blocks')}</div>
                   </div>
                 )}
 
@@ -510,7 +514,7 @@ export function EnhancedProcessingModal({
                       {(progressStatus.statistics.scrapingRate || progressStatus.statistics.indexingRate || 0).toFixed(1)}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {progressStatus.status === 'scraping' ? 'стор/сек' : 'док/сек'}
+                      {progressStatus.status === 'scraping' ? t('processing.progress.pagesSec') : t('processing.progress.docsSec')}
                     </div>
                   </div>
                 )}
@@ -524,7 +528,7 @@ export function EnhancedProcessingModal({
                   <div className="bg-slate-700 rounded-lg p-3 flex-1">
                     <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                       <Clock className="w-4 h-4" />
-                      Минуло часу
+                      {t('processing.progress.elapsed')}
                     </div>
                     <div className="text-blue-400 font-medium">
                       {formatTime(progressStatus.statistics.elapsedTime)}
@@ -538,7 +542,7 @@ export function EnhancedProcessingModal({
                   <div className="bg-slate-700 rounded-lg p-3 flex-1">
                     <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                       <Clock className="w-4 h-4" />
-                      Залишилось
+                      {t('processing.progress.remaining')}
                     </div>
                     <div className="text-green-400 font-medium">
                       ~{formatTime(progressStatus.statistics.estimatedTimeRemaining)}
@@ -551,7 +555,7 @@ export function EnhancedProcessingModal({
             {/* Current URL */}
             {progressSettings.showCurrentUrl && progressStatus?.statistics?.currentUrl && (
               <div className="bg-slate-700 rounded-lg p-3 mb-4">
-                <div className="text-slate-300 text-sm mb-1">Обробляється зараз:</div>
+                <div className="text-slate-300 text-sm mb-1">{t('processing.progress.currentUrl')}</div>
                 <div className="text-blue-400 text-sm font-mono truncate">
                   {progressStatus.statistics.currentUrl}
                 </div>
@@ -596,13 +600,13 @@ export function EnhancedProcessingModal({
               <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
                 <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
                 <p className="text-red-400 font-medium text-center">
-                  {error || progressStatus?.error || 'Сталася невідома помилка'}
+                  {error || progressStatus?.error || t('processing.error.unknown')}
                 </p>
                 <button
                   onClick={onClose}
                   className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors"
                 >
-                  Закрити
+                  {t('processing.error.close')}
                 </button>
               </div>
             </div>
@@ -614,7 +618,7 @@ export function EnhancedProcessingModal({
               <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4">
                 <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
                 <p className="text-green-400 font-medium text-center mb-4">
-                  Готово! Ваш AI помічник створено успішно
+                  {t('processing.completed.success')}
                 </p>
                 
                 {/* Main Actions */}
@@ -624,7 +628,7 @@ export function EnhancedProcessingModal({
                       href={progressStatus.chatUrl}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
                     >
-                      Перейти до чату з AI
+                      {t('processing.completed.goToChat')}
                       <ExternalLink className="w-4 h-4" />
                     </a>
                   )}
@@ -635,11 +639,11 @@ export function EnhancedProcessingModal({
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded transition-colors flex items-center justify-center gap-2"
                   >
                     <FileText className="w-4 h-4" />
-                    Отримати Документацію в Одному Файлі
+                    {t('processing.completed.getConsolidated')}
                   </button>
                   
                   <p className="text-xs text-green-300 text-center mt-2">
-                    💡 Ідеально для використання з ChatGPT, Gemini чи Claude
+                    💡 {t('processing.completed.perfectFor')}
                   </p>
                 </div>
               </div>
@@ -650,15 +654,14 @@ export function EnhancedProcessingModal({
           {!hasError && !isCompleted && (
             <div className="text-center">
               <p className="text-sm text-slate-400">
-                Це може зайняти від декількох секунд до декількох хвилин, 
-                залежно від розміру документації.
+                {t('processing.info.duration')}
               </p>
               <p className="text-sm text-slate-500 mt-2">
-                Будь ласка, не закривайте сторінку.
+                {t('processing.info.dontClose')}
               </p>
               {sessionId && (
                 <p className="text-xs text-slate-600 mt-2">
-                  Session ID: {sessionId}
+                  {t('processing.info.sessionId')} {sessionId}
                 </p>
               )}
             </div>

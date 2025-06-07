@@ -2,6 +2,7 @@
 
 import { useState, useRef, KeyboardEvent } from "react";
 import { Send, Loader } from "lucide-react";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface QueryInputAreaProps {
   onSendMessage: (message: string) => void;
@@ -9,6 +10,7 @@ interface QueryInputAreaProps {
 }
 
 export function QueryInputArea({ onSendMessage, disabled = false }: QueryInputAreaProps) {
+  const { t } = useTranslationSafe();
   const [query, setQuery] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -51,7 +53,7 @@ export function QueryInputArea({ onSendMessage, disabled = false }: QueryInputAr
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Запитайте щось про вашу документацію..."
+          placeholder={t('chat.placeholder')}
           disabled={disabled}
           className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 pr-12 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-800 disabled:text-slate-500 resize-none min-h-[48px] max-h-[200px]"
           rows={1}
@@ -68,7 +70,7 @@ export function QueryInputArea({ onSendMessage, disabled = false }: QueryInputAr
         onClick={handleSubmit}
         disabled={disabled || !query.trim()}
         className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white p-3 rounded-lg transition-colors flex items-center justify-center min-w-[48px]"
-        aria-label="Відправити повідомлення"
+        aria-label={t('chat.sendMessage')}
       >
         {disabled ? (
           <Loader className="w-5 h-5 animate-spin" />

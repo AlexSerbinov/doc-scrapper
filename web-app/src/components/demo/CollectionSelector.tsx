@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface Collection {
   name: string;
@@ -19,6 +20,7 @@ interface CollectionSelectorProps {
 }
 
 export function CollectionSelector({ sessionId, onCollectionChange }: CollectionSelectorProps) {
+  const { t } = useTranslationSafe();
   const [collectionsData, setCollectionsData] = useState<CollectionsData | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +57,9 @@ export function CollectionSelector({ sessionId, onCollectionChange }: Collection
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-blue-400 rounded-full animate-pulse"></div>
-          <span className="text-slate-300">Завантажую колекції...</span>
+          <span className="text-slate-300">
+            {t('collections.loading')}
+          </span>
         </div>
       </div>
     );
@@ -65,7 +69,7 @@ export function CollectionSelector({ sessionId, onCollectionChange }: Collection
     return (
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
         <div className="text-slate-400 text-sm">
-          📚 Колекції документації ще не завантажені
+          📚 {t('collections.notLoaded')}
         </div>
       </div>
     );
@@ -80,9 +84,17 @@ export function CollectionSelector({ sessionId, onCollectionChange }: Collection
           className="w-full flex items-center justify-between text-left"
         >
           <div>
-            <h4 className="text-slate-200 font-semibold">📚 Колекції документації</h4>
+            <h4 className="text-slate-200 font-semibold">
+              📚 {t('collections.title')}
+            </h4>
             <p className="text-slate-400 text-sm">
-              Активна: {selectedCollection || 'Не вибрано'} ({collectionsData.collections.find(c => c.name === selectedCollection)?.count || 0} docs)
+              {selectedCollection 
+                ? t('collections.active', { 
+                    collection: selectedCollection, 
+                    count: collectionsData.collections.find(c => c.name === selectedCollection)?.count || 0 
+                  })
+                : t('collections.notSelected')
+              }
             </p>
           </div>
           <svg 
@@ -117,7 +129,9 @@ export function CollectionSelector({ sessionId, onCollectionChange }: Collection
                   >
                     <div className="flex justify-between items-center">
                       <span>{collection.name}</span>
-                      <span className="text-xs opacity-70">{collection.count} docs</span>
+                      <span className="text-xs opacity-70">
+                        {collection.count} {t('common.files')}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -131,7 +145,7 @@ export function CollectionSelector({ sessionId, onCollectionChange }: Collection
               onClick={fetchCollections}
               className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 p-2 rounded text-sm transition-colors"
             >
-              🔄 Оновити список
+              🔄 {t('collections.refreshList')}
             </button>
           </div>
         </div>

@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 export function Footer() {
+  const { t } = useTranslationSafe();
+  
   return (
     <footer className="bg-slate-900 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -13,39 +16,37 @@ export function Footer() {
               Doc Scrapper AI
             </h3>
             <p className="text-slate-400 text-sm">
-              Розблокуйте силу вашої документації з AI. Миттєво
-              перетворіть онлайн-документацію на інтерактивного
-              помічника.
+              {t('footer.description')}
             </p>
             <p className="text-slate-400 text-sm mt-4">
-              Побудовано з ❤️ для розробників та команд
+              {t('footer.builtWith')}
             </p>
           </div>
 
           {/* Колонка 2: Швидкі посилання */}
           <div>
             <h3 className="text-lg font-semibold text-slate-100 mb-4">
-              Швидкі посилання
+              {t('footer.quickLinks.title')}
             </h3>
             <ul className="space-y-2">
               <li>
                 <Link href="#features" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Можливості
+                  {t('footer.quickLinks.features')}
                 </Link>
               </li>
               <li>
                 <Link href="#how-it-works" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Як це працює
+                  {t('footer.quickLinks.howItWorks')}
                 </Link>
               </li>
               <li>
                 <Link href="#pricing" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Тарифи
+                  {t('footer.quickLinks.pricing')}
                 </Link>
               </li>
               <li>
                 <Link href="/demo" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Демо
+                  {t('footer.quickLinks.demo')}
                 </Link>
               </li>
             </ul>
@@ -54,22 +55,22 @@ export function Footer() {
           {/* Колонка 3: Підтримка */}
           <div>
             <h3 className="text-lg font-semibold text-slate-100 mb-4">
-              Підтримка
+              {t('footer.support.title')}
             </h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/docs" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Документація
+                  {t('footer.support.docs')}
                 </Link>
               </li>
               <li>
                 <Link href="/support" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Центр підтримки
+                  {t('footer.support.helpCenter')}
                 </Link>
               </li>
               <li>
                 <Link href="/contact" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Зв&apos;язатися з нами
+                  {t('footer.support.contact')}
                 </Link>
               </li>
               <li>
@@ -83,22 +84,22 @@ export function Footer() {
           {/* Колонка 4: Правові */}
           <div>
             <h3 className="text-lg font-semibold text-slate-100 mb-4">
-              Правові
+              {t('footer.legal.title')}
             </h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/privacy" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Політика Конфіденційності
+                  {t('footer.legal.privacy')}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Умови Використання
+                  {t('footer.legal.terms')}
                 </Link>
               </li>
               <li>
                 <Link href="/cookies" className="text-slate-400 hover:text-slate-200 text-sm transition-colors">
-                  Файли Cookie
+                  {t('footer.legal.cookies')}
                 </Link>
               </li>
             </ul>
@@ -108,7 +109,7 @@ export function Footer() {
         {/* Нижній рядок */}
         <div className="mt-8 pt-8 border-t border-slate-800 text-center">
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} Doc Scrapper AI. Всі права захищені.
+            {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
         </div>
       </div>

@@ -26,11 +26,11 @@ export default async function DemoPage({ params }: DemoPageProps) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-100 mb-4">
-            🤖 Ваш AI-Асистент Готовий!
+            🤖 Your AI Assistant is Ready!
           </h1>
           <p className="text-lg text-slate-300 mb-6">
-            Документація успішно оброблена та проіндексована. 
-            Ви можете ставити запитання про будь-який аспект вашої документації.
+            Documentation has been successfully processed and indexed. 
+            You can ask questions about any aspect of your documentation.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
             href="/"
             className="text-blue-400 hover:text-blue-300 underline"
           >
-            ← Повернутися на головну
+            ← Back to Home
           </Link>
         </div>
       </div>

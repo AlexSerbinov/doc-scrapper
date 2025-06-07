@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageList } from "./MessageList";
 import { QueryInputArea } from "./QueryInputArea";
 import { ExampleQueries } from "./ExampleQueries";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 // Updated Message interface to match new UI components
 export interface Message {
@@ -24,10 +25,11 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ sessionId, selectedCollection }: ChatInterfaceProps) {
+  const { t } = useTranslationSafe();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: "Вітаю! Я ваш AI-помічник для документації. Ставте будь-які запитання про вашу документацію - я знайду найбільш релевантну інформацію та надам детальні відповіді з посиланнями на джерела.",
+      content: t('chat.welcomeMessage'),
       type: 'ai',
       timestamp: new Date(),
       sources: []
@@ -89,7 +91,7 @@ export function ChatInterface({ sessionId, selectedCollection }: ChatInterfacePr
       console.error('Chat error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Вибачте, сталася помилка під час обробки вашого запиту. Спробуйте ще раз.',
+        content: t('chat.errorMessage'),
         type: 'ai',
         timestamp: new Date(),
         sources: []
@@ -109,11 +111,11 @@ export function ChatInterface({ sessionId, selectedCollection }: ChatInterfacePr
             <span className="text-white font-semibold">AI</span>
           </div>
           <div>
-            <h3 className="text-slate-100 font-semibold">Documentation Assistant</h3>
+            <h3 className="text-slate-100 font-semibold">{t('chat.assistant')}</h3>
             <p className="text-slate-400 text-sm">
               {selectedCollection 
-                ? `Активна колекція: ${selectedCollection.split('-')[0]}`
-                : 'Ready to help with your documentation'
+                ? t('chat.activeCollection', { collection: selectedCollection.split('-')[0] })
+                : t('chat.readyToHelp')
               }
             </p>
           </div>

@@ -8,6 +8,7 @@ import {
   Globe, 
   Brain 
 } from "lucide-react";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface FeatureCardProps {
   icon: React.ReactNode;
@@ -32,36 +33,37 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
 }
 
 export function FeaturesSection() {
+  const { t } = useTranslationSafe();
   const features = [
     {
       icon: <Zap className="w-10 h-10" />,
-      title: "Миттєва Готовність",
-      description: "За лічені хвилини ваша документація перетворюється на базу знань для AI. Автоматичне індексування та оптимізація."
+      title: t('features.instantReadiness.title'),
+      description: t('features.instantReadiness.description')
     },
     {
       icon: <Search className="w-10 h-10" />,
-      title: "Точні Відповіді з Джерелами",
-      description: "AI надає релевантну інформацію з прямими посиланнями на оригінальні розділи документації."
+      title: t('features.accurateAnswers.title'),
+      description: t('features.accurateAnswers.description')
     },
     {
       icon: <MessageSquare className="w-10 h-10" />,
-      title: "Простота для Користувачів",
-      description: "Інтуїтивний чат замість складного пошуку та навігації. Природна мова для отримання відповідей."
+      title: t('features.userFriendly.title'),
+      description: t('features.userFriendly.description')
     },
     {
       icon: <Shield className="w-10 h-10" />,
-      title: "Підвищення Продуктивності",
-      description: "Команди та клієнти швидше знаходять потрібне, зменшуючи час на підтримку та навчання."
+      title: t('features.productivity.title'),
+      description: t('features.productivity.description')
     },
     {
       icon: <Globe className="w-10 h-10" />,
-      title: "Універсальна Сумісність",
-      description: "Працює з будь-якою онлайн документацією - GitBook, Notion, Confluence, власні сайти та інше."
+      title: t('features.universalCompatibility.title'),
+      description: t('features.universalCompatibility.description')
     },
     {
       icon: <Brain className="w-10 h-10" />,
-      title: "Розумне Навчання",
-      description: "AI постійно вчиться на взаємодіях та покращує якість відповідей для вашої конкретної документації."
+      title: t('features.smartLearning.title'),
+      description: t('features.smartLearning.description')
     }
   ];
 
@@ -71,10 +73,10 @@ export function FeaturesSection() {
         {/* Заголовок секції */}
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-100 mb-4">
-            Можливості Doc Scrapper AI
+            {t('features.title')}
           </h2>
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto">
-            Трансформуйте документацію в інтелектуального помічника
+            {t('features.subtitle')}
           </p>
         </div>
 

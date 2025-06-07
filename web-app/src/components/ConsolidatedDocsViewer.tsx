@@ -5,6 +5,7 @@ import { Copy, FileText, Eye, Download, Loader2, CheckCircle } from 'lucide-reac
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import type { Components } from 'react-markdown';
+import { useTranslationSafe } from '../hooks/useTranslationSafe';
 
 interface ConsolidatedDocsViewerProps {
   collectionName: string;
@@ -29,6 +30,7 @@ export function ConsolidatedDocsViewer({
   onClose,
   embedded = false 
 }: ConsolidatedDocsViewerProps) {
+  const { t } = useTranslationSafe();
   const [data, setData] = useState<ConsolidationData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'rendered' | 'raw'>('rendered');
@@ -115,20 +117,19 @@ export function ConsolidatedDocsViewer({
         <div className="text-center">
           <FileText className="w-12 h-12 text-blue-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-slate-100 mb-2">
-            📚 Consolidated Documentation
+            📚 {t('consolidatedDocs.title')}
           </h3>
           <p className="text-slate-300 mb-6 max-w-md mx-auto">
-            Згенеруйте один файл з усією вашою документацією для використання з великими мовними моделями 
-            (Google Gemini, ChatGPT-4, Claude та іншими).
+            {t('consolidatedDocs.subtitle')}
           </p>
           
           <div className="bg-slate-800 rounded-lg p-4 mb-6">
-            <h4 className="text-sm font-medium text-slate-200 mb-2">🎯 Ідеально для:</h4>
+            <h4 className="text-sm font-medium text-slate-200 mb-2">🎯 {t('consolidatedDocs.perfectFor')}</h4>
             <div className="text-sm text-slate-400 space-y-1">
-              <div>🤖 Google Gemini Flash/Pro (2M+ токенів)</div>
-              <div>🤖 ChatGPT-4 Turbo (128K+ токенів)</div>
-              <div>🤖 Claude 3.5 Sonnet (200K+ токенів)</div>
-              <div>🤖 Інших LLM з великим контекстом</div>
+              <div>🤖 {t('consolidatedDocs.llmList.gemini')}</div>
+              <div>🤖 {t('consolidatedDocs.llmList.chatgpt')}</div>
+              <div>🤖 {t('consolidatedDocs.llmList.claude')}</div>
+              <div>🤖 {t('consolidatedDocs.llmList.other')}</div>
             </div>
           </div>
 
@@ -136,7 +137,7 @@ export function ConsolidatedDocsViewer({
             onClick={handleGenerate}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
-            Згенерувати Консолідовану Документацію
+            {t('consolidatedDocs.generateButton')}
           </button>
         </div>
       </div>
@@ -156,7 +157,7 @@ export function ConsolidatedDocsViewer({
             <FileText className="w-5 h-5 text-blue-400" />
             <div>
               <h3 className="text-lg font-semibold text-slate-100">
-                Консолідована Документація
+                {t('consolidatedDocs.title')}
               </h3>
               <p className="text-sm text-slate-400">
                 {projectName || collectionName}
@@ -181,19 +182,19 @@ export function ConsolidatedDocsViewer({
               <div className="text-xl font-bold text-blue-400">
                 {formatNumber(data.stats.totalFiles)}
               </div>
-              <div className="text-xs text-slate-400">Файлів</div>
+              <div className="text-xs text-slate-400">{t('common.files')}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-xl font-bold text-green-400">
                 {formatBytes(data.stats.totalSize)}
               </div>
-              <div className="text-xs text-slate-400">Розмір</div>
+              <div className="text-xs text-slate-400">{t('common.size')}</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-xl font-bold text-purple-400">
                 ~{formatNumber(data.stats.estimatedTokens)}
               </div>
-              <div className="text-xs text-slate-400">Токенів</div>
+              <div className="text-xs text-slate-400">{t('common.tokens')}</div>
             </div>
           </div>
         )}
@@ -213,7 +214,7 @@ export function ConsolidatedDocsViewer({
                 }`}
               >
                 <Eye className="w-4 h-4 inline mr-1" />
-                Rendered
+                {t('consolidatedDocs.viewModes.rendered')}
               </button>
               <button
                 onClick={() => setViewMode('raw')}
@@ -224,7 +225,7 @@ export function ConsolidatedDocsViewer({
                 }`}
               >
                 <FileText className="w-4 h-4 inline mr-1" />
-                Raw
+                {t('consolidatedDocs.viewModes.raw')}
               </button>
             </div>
 
@@ -238,14 +239,14 @@ export function ConsolidatedDocsViewer({
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
-                {copySuccess ? 'Скопійовано!' : 'Копіювати'}
+                {copySuccess ? t('common.copied') : t('common.copy')}
               </button>
               <button
                 onClick={handleDownload}
                 className="flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Завантажити
+                {t('common.download')}
               </button>
             </div>
           </div>
@@ -257,19 +258,19 @@ export function ConsolidatedDocsViewer({
         {isLoading && (
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-4" />
-            <p className="text-slate-300">Генеруємо консолідовану документацію...</p>
+            <p className="text-slate-300">{t('consolidatedDocs.generating')}</p>
           </div>
         )}
 
         {error && (
           <div className="bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-200">
-            <h4 className="font-medium mb-2">Помилка генерації</h4>
+            <h4 className="font-medium mb-2">{t('common.error')}</h4>
             <p className="text-sm">{error}</p>
             <button
               onClick={handleGenerate}
               className="mt-3 text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition-colors"
             >
-              Спробувати знову
+              {t('common.refresh')}
             </button>
           </div>
         )}

@@ -6,12 +6,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Message } from "./ChatInterface";
 import { SourceCards } from "./SourceCards";
+import { useTranslationSafe } from "../../hooks/useTranslationSafe";
 
 interface MessageBubbleProps {
   message: Message;
 }
 
 export function MessageBubble({ message }: MessageBubbleProps) {
+  const { t } = useTranslationSafe();
   const [copiedStates, setCopiedStates] = useState<{ [key: string]: boolean }>({});
 
   const handleCopy = async (text: string, key: string) => {
@@ -55,7 +57,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/20 ${
               isUser ? 'text-blue-200 hover:text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
-            aria-label="Копіювати повідомлення"
+            aria-label={t('chat.copyMessage')}
           >
             {copiedStates[`message-${message.id}`] ? (
               <Check className="w-4 h-4" />
@@ -96,9 +98,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                                 className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors"
                               >
                                 {copiedStates[codeId] ? (
-                                  <><Check className="w-3 h-3" /> Скопійовано</>
+                                  <><Check className="w-3 h-3" /> {t('common.copied')}</>
                                 ) : (
-                                  <><Copy className="w-3 h-3" /> Копіювати</>
+                                  <><Copy className="w-3 h-3" /> {t('common.copy')}</>
                                 )}
                               </button>
                             </div>
