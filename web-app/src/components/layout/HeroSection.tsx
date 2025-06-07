@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { EnhancedProcessingModal } from "./EnhancedProcessingModal";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export function HeroSection() {
+  const { t } = useTranslation();
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showProcessingModal, setShowProcessingModal] = useState(false);
@@ -18,11 +20,11 @@ export function HeroSection() {
     
     setIsLoading(true);
     
-    // Валідація URL
+    // URL Validation
     try {
       new URL(url);
     } catch {
-      alert("Будь ласка, введіть правильний URL (наприклад, https://docs.example.com)");
+      alert(t('hero.urlValidationError'));
       setIsLoading(false);
       return;
     }
@@ -55,7 +57,7 @@ export function HeroSection() {
 
     } catch (error) {
       console.error('Error starting scraping:', error);
-      alert(`Помилка запуску обробки: ${error instanceof Error ? error.message : 'Невідома помилка'}`);
+      alert(`${t('hero.processingError')}: ${error instanceof Error ? error.message : t('common.error')}`);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +65,7 @@ export function HeroSection() {
 
   const handleModalClose = () => {
     setShowProcessingModal(false);
-    setUrl(""); // Очистити форму
+    setUrl(""); // Clear form
     setSessionId("");
     setCollectionName("");
   };
@@ -97,18 +99,17 @@ export function HeroSection() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center w-full px-4 sm:px-6 lg:px-8">
-          {/* Заголовок */}
+          {/* Title */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-slate-100 mb-6 leading-tight">
-            Розблокуйте Силу Вашої{" "}
+            {t('hero.title')}{" "}
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Документації з AI
+              {t('hero.titleHighlight')}
             </span>
           </h1>
 
-          {/* Підзаголовок */}
+          {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl text-slate-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Миттєво перетворіть вашу онлайн-документацію на інтерактивного AI-помічника. 
-            Отримуйте відповіді, а не просто результати пошуку.
+            {t('hero.subtitle')}
           </p>
 
           {/* Форма активації тріалу */}
@@ -119,7 +120,7 @@ export function HeroSection() {
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://docs.yourproject.com"
+                  placeholder={t('hero.urlPlaceholder')}
                   className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-slate-800/70 backdrop-blur-sm border border-slate-700 rounded-lg text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
                   required
                   disabled={isLoading}
@@ -133,11 +134,11 @@ export function HeroSection() {
                 {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Запускаємо...
+                    {t('hero.startingButton')}
                   </>
                 ) : (
                   <>
-                    Почати Безкоштовно
+                    {t('hero.startFreeButton')}
                     <ArrowRight className="w-5 h-5" />
                   </>
                 )}

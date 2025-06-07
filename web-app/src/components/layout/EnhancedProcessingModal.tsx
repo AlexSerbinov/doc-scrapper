@@ -155,22 +155,30 @@ export function EnhancedProcessingModal({
           return { ...step, status: 'pending' };
         
         case 'indexing':
-          if (step.id === 'analyze' || step.id === 'scrape') {
+          if (step.id === 'analyze') {
             return { ...step, status: 'completed' };
+          } else if (step.id === 'scrape') {
+            // Update details with final numbers when moving to indexing
+            return { 
+              ...step, 
+              status: 'completed',
+              details: status.statistics?.urlsTotal 
+                ? `${status.statistics.urlsTotal}/${status.statistics.urlsTotal} сторінок`
+                : step.details 
+            };
           } else if (step.id === 'process') {
             // Enhanced AI processing details ⭐ FIXED: Prioritize chunks over documents
             let details = status.message;
             
-            // ⭐ FIXED: Show chunks first (embeddings), then documents as fallback
+            // ⭐ FIXED: Show embeddings progress, then chunks, avoid embeddingsGenerated
             if (status.statistics?.embeddingsProcessed && status.statistics?.embeddingsTotal) {
               details = `Embeddings: ${status.statistics.embeddingsProcessed}/${status.statistics.embeddingsTotal}`;
-            } else if (status.statistics?.embeddingsGenerated) {
-              details = `Проіндексовано ${status.statistics.embeddingsGenerated} блоків`;
             } else if (status.statistics?.chunksCreated) {
               details = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
             } else if (status.statistics?.documentsTotal && status.statistics?.documentsProcessed !== undefined) {
               details = `Документи: ${status.statistics.documentsProcessed}/${status.statistics.documentsTotal}`;
             }
+            // Remove embeddingsGenerated to prevent accumulation issues
             
             return { 
               ...step, 
@@ -181,6 +189,24 @@ export function EnhancedProcessingModal({
           return step;
         
         case 'completed':
+          if (step.id === 'process') {
+            // Update AI processing details with final numbers when completed
+            let finalDetails = 'Готово!';
+            
+            // Use embeddingsTotal as the authoritative source for final count
+            if (status.statistics?.embeddingsTotal) {
+              finalDetails = `Проіндексовано ${status.statistics.embeddingsTotal} блоків`;
+            } else if (status.statistics?.chunksCreated) {
+              finalDetails = `Створено ${status.statistics.chunksCreated} семантичних блоків`;
+            }
+            // Remove embeddingsGenerated fallback as it accumulates across sessions
+            
+            return { 
+              ...step, 
+              status: 'completed',
+              details: finalDetails
+            };
+          }
           return { ...step, status: 'completed' };
         
         case 'error':
@@ -214,6 +240,8 @@ export function EnhancedProcessingModal({
 
     return () => clearInterval(interval);
   }, [isPolling, fetchProgress]);
+
+
 
   // Скидання стану при закритті
   useEffect(() => {
@@ -328,7 +356,7 @@ export function EnhancedProcessingModal({
             <p className="text-slate-300 text-sm">
               {hasError ? 'Сталася помилка під час обробки' : 
                isCompleted ? 'Ваш AI-помічник готовий для' :
-               'Готуємо Вашого AI-Помічника для'}
+               'Готуємо Вашу Документацію Для'}
             </p>
             <p className="text-blue-400 font-medium">
               {getDomainFromUrl(url)}
@@ -450,16 +478,7 @@ export function EnhancedProcessingModal({
                   </div>
                 )}
 
-                {/* Documents */}
-                {progressStatus.statistics.documentsTotal && (
-                  <div className="bg-slate-700 rounded-lg p-3 text-center">
-                    <FileText className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                    <div className="text-lg font-bold text-green-400">
-                      {progressStatus.statistics.documentsProcessed || 0}/{progressStatus.statistics.documentsTotal}
-                    </div>
-                    <div className="text-xs text-slate-400">Документів</div>
-                  </div>
-                )}
+
 
                 {/* Embeddings Progress */}
                 {progressStatus.statistics.embeddingsProcessed && progressStatus.statistics.embeddingsTotal && (
@@ -500,9 +519,9 @@ export function EnhancedProcessingModal({
 
             {/* Timing Information */}
             {progressSettings.showTimingInfo && progressStatus?.statistics && (
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="flex gap-4 mb-6">
                 {progressStatus.statistics.elapsedTime && (
-                  <div className="bg-slate-700 rounded-lg p-3">
+                  <div className="bg-slate-700 rounded-lg p-3 flex-1">
                     <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                       <Clock className="w-4 h-4" />
                       Минуло часу
@@ -513,8 +532,10 @@ export function EnhancedProcessingModal({
                   </div>
                 )}
 
-                {progressStatus.statistics.estimatedTimeRemaining && progressStatus.statistics.estimatedTimeRemaining > 0 && (
-                  <div className="bg-slate-700 rounded-lg p-3">
+                {progressStatus.statistics.estimatedTimeRemaining && 
+                 progressStatus.statistics.estimatedTimeRemaining > 0 && 
+                 formatTime(progressStatus.statistics.estimatedTimeRemaining) !== '0' && (
+                  <div className="bg-slate-700 rounded-lg p-3 flex-1">
                     <div className="flex items-center gap-2 text-slate-300 text-sm mb-1">
                       <Clock className="w-4 h-4" />
                       Залишилось
@@ -630,7 +651,7 @@ export function EnhancedProcessingModal({
             <div className="text-center">
               <p className="text-sm text-slate-400">
                 Це може зайняти від декількох секунд до декількох хвилин, 
-                залежно від розміру вашої документації.
+                залежно від розміру документації.
               </p>
               <p className="text-sm text-slate-500 mt-2">
                 Будь ласка, не закривайте сторінку.

@@ -251,7 +251,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
           <p className="text-slate-300">
             {hasError ? 'Сталася помилка під час обробки' : 
              isCompleted ? 'Ваш AI-помічник готовий для' :
-             'Готуємо Вашого AI-Помічника для'}
+             'Готуємо Вашу Документацію Для'}
           </p>
           <p className="text-blue-400 font-medium mt-1">
             {getDomainFromUrl(url)}
@@ -368,7 +368,7 @@ export function ProcessingModal({ isOpen, onClose, url, sessionId, collectionNam
           <div className="text-center">
             <p className="text-sm text-slate-400">
               Це може зайняти від декількох секунд до декількох хвилин, 
-              залежно від розміру вашої документації.
+              залежно від розміру документації.
             </p>
             <p className="text-sm text-slate-500 mt-2">
               Будь ласка, не закривайте сторінку.
